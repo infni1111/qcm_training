@@ -113,6 +113,27 @@ export function isBad(summary, { minAttempts = 2, threshold = 0.5 } = {}) {
   return summary.rate !== null && summary.rate < threshold;
 }
 
+// Per-chapter aggregate from the full stats object.
+// Returns [{ chapter, attempts, correct, wrong, rate }].
+export function chapterAggregates(stats) {
+  return stats.children.map((ch) => {
+    let attempts = 0, correct = 0;
+    for (const [, qcm_stats] of ch.children) {
+      for (const [, v] of qcm_stats) {
+        attempts++;
+        if (v === 1) correct++;
+      }
+    }
+    return {
+      chapter: ch,
+      attempts,
+      correct,
+      wrong: attempts - correct,
+      rate: attempts ? correct / attempts : null,
+    };
+  });
+}
+
 export function clearStats() {
   if (typeof localStorage !== 'undefined') localStorage.removeItem(LS_KEY);
   return buildEmptyStats();
