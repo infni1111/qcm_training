@@ -39,24 +39,25 @@ function buildCard(qcm, index, total) {
   idx.textContent = `Question ${index + 1} / ${total}`;
   card.appendChild(idx);
 
-  // --- bloc QCM : <details open> — clic sur la question replie/deplie les reponses ---
-  const qcmBlock = document.createElement("details");
-  qcmBlock.className = "qcm-details";
-  qcmBlock.open = true;
+  // --- bloc QCM : question + reponses TOUJOURS visibles ---
+  // Le titre est cliquable : il toggle l'explication situee en dessous.
+  const qcmBlock = document.createElement("div");
+  qcmBlock.className = "qcm-block";
 
-  const summary = document.createElement("summary");
-  summary.className = "question-title";
-  // chevron visuel
+  const title = document.createElement("button");
+  title.type = "button";
+  title.className = "question-title";
+  title.setAttribute("aria-expanded", "false");
   const chevron = document.createElement("span");
   chevron.className = "chevron";
   chevron.setAttribute("aria-hidden", "true");
-  chevron.textContent = "▾";
+  chevron.textContent = "▸";
   const qText = document.createElement("span");
   qText.className = "question-text";
   qText.textContent = qcm.title;
-  summary.appendChild(chevron);
-  summary.appendChild(qText);
-  qcmBlock.appendChild(summary);
+  title.appendChild(chevron);
+  title.appendChild(qText);
+  qcmBlock.appendChild(title);
 
   const answers = document.createElement("div");
   answers.className = "answers";
@@ -124,22 +125,17 @@ function buildCard(qcm, index, total) {
 
   card.appendChild(qcmBlock);
 
-  // --- bloc Explication : <details> fermé par défaut, frère du bloc QCM ---
+  // --- bloc Explication : frère du bloc QCM, caché par défaut ---
+  // Toggle par clic sur le titre de la question.
   if (qcm.explanation) {
-    const expl = document.createElement("details");
-    expl.className = "explanation-details";
+    const expl = document.createElement("div");
+    expl.className = "explanation";
+    expl.hidden = true;
 
-    const esum = document.createElement("summary");
-    esum.className = "explanation-summary";
-    const echev = document.createElement("span");
-    echev.className = "chevron";
-    echev.setAttribute("aria-hidden", "true");
-    echev.textContent = "▸";
-    const elabel = document.createElement("span");
+    const elabel = document.createElement("div");
+    elabel.className = "explanation-label";
     elabel.textContent = "Explication";
-    esum.appendChild(echev);
-    esum.appendChild(elabel);
-    expl.appendChild(esum);
+    expl.appendChild(elabel);
 
     const body = document.createElement("div");
     body.className = "explanation-body";
@@ -147,6 +143,14 @@ function buildCard(qcm, index, total) {
     expl.appendChild(body);
 
     card.appendChild(expl);
+
+    title.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const willOpen = expl.hidden;
+      expl.hidden = !willOpen;
+      title.setAttribute("aria-expanded", willOpen ? "true" : "false");
+      title.classList.toggle("open", willOpen);
+    });
   }
 
   // indice bas/haut

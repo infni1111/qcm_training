@@ -132,73 +132,66 @@ html, body {
   text-transform: uppercase;
 }
 
-/* --- QCM details (l'ensemble titre+reponses est pliable) --- */
-.qcm-details {
-  background: transparent;
-  border: none;
-  padding: 0;
+/* --- Bloc QCM : question toujours visible + reponses --- */
+.qcm-block {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
-.qcm-details > summary.question-title {
-  list-style: none;                /* supprime marker Firefox */
-  cursor: pointer;
-  user-select: none;
+
+/* La question est un <button> cliquable qui toggle l'explication */
+button.question-title {
+  appearance: none;
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
   margin: 0;
-  padding: 14px 14px;
+  padding: 14px;
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: 12px;
   font-size: 1.05rem;
   font-weight: 600;
   min-height: 3em;
+  color: var(--text);
+  cursor: pointer;
   display: flex;
   align-items: flex-start;
   gap: 10px;
+  transition: border-color .15s, background .15s;
 }
-.qcm-details > summary.question-title::-webkit-details-marker { display: none; }
-.qcm-details > summary.question-title .chevron {
-  display: inline-block;
-  transition: transform .2s;
+button.question-title:hover { background: var(--panel-2); }
+button.question-title.open {
+  border-color: var(--accent);
+}
+button.question-title .chevron {
   color: var(--accent);
   margin-top: 2px;
   flex: 0 0 auto;
-}
-.qcm-details:not([open]) > summary.question-title .chevron {
-  transform: rotate(-90deg);
-}
-.qcm-details > .answers,
-.qcm-details > .toolbar {
-  margin-top: 10px;
-}
-
-/* --- Explanation details (frere du bloc QCM) --- */
-.explanation-details {
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: rgba(56, 189, 248, .06);
-  overflow: hidden;
-}
-.explanation-details > summary.explanation-summary {
-  list-style: none;
-  cursor: pointer;
-  user-select: none;
-  padding: 10px 14px;
-  font-size: .92rem;
-  font-weight: 600;
-  color: var(--accent);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.explanation-details > summary.explanation-summary::-webkit-details-marker { display: none; }
-.explanation-details > summary .chevron {
   transition: transform .2s;
   display: inline-block;
 }
-.explanation-details[open] > summary .chevron {
+button.question-title.open .chevron {
   transform: rotate(90deg);
 }
+
+/* --- Explication : cachée par défaut (attribut hidden), révélée au clic --- */
+.explanation {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: rgba(56, 189, 248, .06);
+  padding: 10px 14px 12px;
+}
+.explanation[hidden] { display: none; }
+.explanation-label {
+  font-size: .78rem;
+  text-transform: uppercase;
+  letter-spacing: .12em;
+  font-weight: 600;
+  color: var(--accent);
+  margin-bottom: 6px;
+}
 .explanation-body {
-  padding: 0 14px 12px 14px;
   color: var(--text);
   font-size: .92rem;
   line-height: 1.55;
