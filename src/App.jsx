@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { APP_DATA } from './data.js';
 import Card from './Card.jsx';
+import Stats from './Stats.jsx';
+import { clearStats, loadStats, recordAnswer, saveStats } from './stats.js';
 
 const SWIPE_THRESHOLD_PX = 50;
 const SWIPE_MAX_DURATION_MS = 600;
@@ -13,6 +15,21 @@ export default function App() {
   // When navigating, we keep the outgoing qcm for the slide animation.
   // { from: qcm, direction: +1 | -1 } | null
   const [transition, setTransition] = useState(null);
+  // Stats dataset (mirror of APP_DATA). Persisted in localStorage.
+  const [stats, setStats] = useState(loadStats);
+  const [showStats, setShowStats] = useState(false);
+
+  const onAnswer = useCallback((qcm_id, correct) => {
+    setStats((prev) => {
+      const next = recordAnswer(prev, qcm_id, correct ? 1 : 0);
+      saveStats(next);
+      return next;
+    });
+  }, []);
+
+  const onResetStats = useCallback(() => {
+    setStats(clearStats());
+  }, []);
 
   const chapter = APP_DATA.children[chapterIndex];
   const total = chapter.children.length;
@@ -102,7 +119,14 @@ export default function App() {
       <header className="app-header">
         <div className="header-row">
           <h1>{APP_DATA.title}</h1>
-          <span className="counter">Q {qcmIndex + 1} / {total}</span>
+          <button
+            type="button"
+            className="stats-btn"
+            onClick={() => setShowStats(true)}
+            aria-label="Open stats"
+          >
+            Stats
+          </button>
         </div>
         <div className="strip" aria-label="Chapters">
           {APP_DATA.children.map((ch, i) => (
@@ -134,6 +158,7 @@ export default function App() {
             total={total}
             animClass={transition.direction > 0 ? 'exit-to-top' : 'exit-to-bottom'}
             interactive={false}
+            onAnswer={onAnswer}
           />
         )}
 
@@ -149,8 +174,17 @@ export default function App() {
               : ''
           }
           interactive={true}
+          onAnswer={onAnswer}
         />
       </main>
+
+      {showStats && (
+        <Stats
+          stats={stats}
+          onClose={() => setShowStats(false)}
+          onReset={onResetStats}
+        />
+      )}
     </>
   );
 }

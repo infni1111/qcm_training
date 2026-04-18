@@ -7,7 +7,7 @@ import Explanation from './Explanation.jsx';
 //  1 -> show the explanation
 // Because <Card key={qcm.id}> in App.jsx, navigating to another QCM
 // unmounts this Card: view (and picks) are destroyed => reset to 0 on remount.
-export default function Card({ qcm, index, total, animClass = '', interactive = true }) {
+export default function Card({ qcm, index, total, animClass = '', interactive = true, onAnswer }) {
   const [view, setView] = useState(0);
   const [picks, setPicks] = useState(() => new Set());
 
@@ -24,7 +24,13 @@ export default function Card({ qcm, index, total, animClass = '', interactive = 
       <div className="card-index">Question {index + 1} / {total}</div>
 
       {view === 0 ? (
-        <Qcm qcm={qcm} picks={picks} setPicks={setPicks} onOpenExplanation={showExplanation} />
+        <Qcm
+          qcm={qcm}
+          picks={picks}
+          setPicks={setPicks}
+          onOpenExplanation={showExplanation}
+          onAnswer={onAnswer}
+        />
       ) : (
         <Explanation qcm={qcm} onBack={showQcm} />
       )}

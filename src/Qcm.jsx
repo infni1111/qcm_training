@@ -1,12 +1,14 @@
 // QCM view: question + answers. Clicking the question title flips view -> 1
 // (handled by parent Card). Clicking an answer records a pick (stopPropagation
 // keeps that click from also opening the explanation).
-export default function Qcm({ qcm, picks, setPicks, onOpenExplanation }) {
+export default function Qcm({ qcm, picks, setPicks, onOpenExplanation, onAnswer }) {
   const pick = (id) => {
     if (picks.has(id)) return;
+    const answer = qcm.children.find((a) => a.id === id);
     const next = new Set(picks);
     next.add(id);
     setPicks(next);
+    if (answer && onAnswer) onAnswer(qcm.id, answer.correct);
   };
 
   const totalCorrect = qcm.children.filter((a) => a.correct).length;
