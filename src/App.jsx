@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { APP_DATA } from './data.js';
+import { APP_DATA, CHAPTERS } from './data.js';
 import Card from './Card.jsx';
 import Stats from './Stats.jsx';
 import { clearStats, loadStats, recordAnswer, saveStats } from './stats.js';
@@ -9,15 +9,27 @@ const SWIPE_MAX_DURATION_MS = 600;
 const WHEEL_COOLDOWN_MS = 400;
 const TRANSITION_MS = 260;
 
+// appView toggles between the two branches under root: 'chapters' or 'stats'.
+const VIEW_CHAPTERS = 0;
+const VIEW_STATS = 1;
+
 export default function App() {
+  const [appView, setAppView] = useState(VIEW_CHAPTERS);
+
   const [chapterIndex, setChapterIndex] = useState(0);
   const [qcmIndex, setQcmIndex] = useState(0);
-  // When navigating, we keep the outgoing qcm for the slide animation.
-  // { from: qcm, direction: +1 | -1 } | null
   const [transition, setTransition] = useState(null);
-  // Stats dataset (mirror of APP_DATA). Persisted in localStorage.
+
   const [stats, setStats] = useState(loadStats);
-  const [showStats, setShowStats] = useState(false);
+
+  const chapter = CHAPTERS[chapterIndex];
+  const total = chapter.children.length;
+  const currentQcm = chapter.children[qcmIndex];
+
+  const feedRef = useRef(null);
+  const animatingRef = useRef(false);
+  const touchStartRef = useRef(null);
+  const lastWheelRef = useRef(0);
 
   const onAnswer = useCallback((qcm_id, correct) => {
     setStats((prev) => {
@@ -31,14 +43,12 @@ export default function App() {
     setStats(clearStats());
   }, []);
 
-  const chapter = APP_DATA.children[chapterIndex];
-  const total = chapter.children.length;
-  const currentQcm = chapter.children[qcmIndex];
-
-  const feedRef = useRef(null);
-  const animatingRef = useRef(false);
-  const touchStartRef = useRef(null);
-  const lastWheelRef = useRef(0);
+  // Body class drives header height: stats view has no chapters strip so the
+  // header is shorter.
+  useEffect(() => {
+    document.body.classList.toggle('view-stats', appView === VIEW_STATS);
+    return () => document.body.classList.remove('view-stats');
+  }, [appView]);
 
   const goTo = useCallback((target, direction) => {
     if (animatingRef.current) return;
@@ -48,7 +58,6 @@ export default function App() {
     const outgoing = chapter.children[qcmIndex];
     setTransition({ from: outgoing, direction });
     setQcmIndex(target);
-    // clear transition after animation
     setTimeout(() => {
       setTransition(null);
       animatingRef.current = false;
@@ -58,7 +67,9 @@ export default function App() {
   const goNext = useCallback(() => goTo(qcmIndex + 1, +1), [qcmIndex, goTo]);
   const goPrev = useCallback(() => goTo(qcmIndex - 1, -1), [qcmIndex, goTo]);
 
+  // Gestures are only bound when the feed is visible.
   useEffect(() => {
+    if (appView !== VIEW_CHAPTERS) return;
     const feed = feedRef.current;
     if (!feed) return;
 
@@ -105,7 +116,7 @@ export default function App() {
       feed.removeEventListener('wheel', onWheel);
       window.removeEventListener('keydown', onKeyDown);
     };
-  }, [goNext, goPrev]);
+  }, [goNext, goPrev, appView]);
 
   const handleChapter = (i) => {
     if (i === chapterIndex) return;
@@ -119,71 +130,79 @@ export default function App() {
       <header className="app-header">
         <div className="header-row">
           <h1>{APP_DATA.title}</h1>
-          <button
-            type="button"
-            className="stats-btn"
-            onClick={() => setShowStats(true)}
-            aria-label="Open stats"
-          >
-            Stats
-          </button>
-        </div>
-        <div className="strip" aria-label="Chapters">
-          {APP_DATA.children.map((ch, i) => (
+          <div className="view-switch" role="tablist">
             <button
-              key={ch.id}
               type="button"
-              className={'pill' + (i === chapterIndex ? ' active' : '')}
-              onClick={() => handleChapter(i)}
+              role="tab"
+              aria-selected={appView === VIEW_CHAPTERS}
+              className={'tab' + (appView === VIEW_CHAPTERS ? ' active' : '')}
+              onClick={() => setAppView(VIEW_CHAPTERS)}
             >
-              {ch.title}
+              Chapters
             </button>
-          ))}
+            <button
+              type="button"
+              role="tab"
+              aria-selected={appView === VIEW_STATS}
+              className={'tab' + (appView === VIEW_STATS ? ' active' : '')}
+              onClick={() => setAppView(VIEW_STATS)}
+            >
+              Stats
+            </button>
+          </div>
         </div>
+        {appView === VIEW_CHAPTERS && (
+          <div className="strip" aria-label="Chapters">
+            {CHAPTERS.map((ch, i) => (
+              <button
+                key={ch.id}
+                type="button"
+                className={'pill' + (i === chapterIndex ? ' active' : '')}
+                onClick={() => handleChapter(i)}
+              >
+                {ch.title}
+              </button>
+            ))}
+          </div>
+        )}
       </header>
 
-      <main className="feed" ref={feedRef} aria-label="Questions">
-        <div className="dots" aria-hidden="true">
-          {chapter.children.map((_, i) => (
-            <span key={i} className={'dot' + (i === qcmIndex ? ' active' : '')} />
-          ))}
-        </div>
+      {appView === VIEW_CHAPTERS ? (
+        <main className="feed" ref={feedRef} aria-label="Questions">
+          <div className="dots" aria-hidden="true">
+            {chapter.children.map((_, i) => (
+              <span key={i} className={'dot' + (i === qcmIndex ? ' active' : '')} />
+            ))}
+          </div>
 
-        {/* Outgoing card (only during a transition) */}
-        {transition && (
+          {transition && (
+            <Card
+              key={`out-${transition.from.id}`}
+              qcm={transition.from}
+              index={chapter.children.indexOf(transition.from)}
+              total={total}
+              animClass={transition.direction > 0 ? 'exit-to-top' : 'exit-to-bottom'}
+              interactive={false}
+              onAnswer={onAnswer}
+            />
+          )}
+
           <Card
-            key={`out-${transition.from.id}`}
-            qcm={transition.from}
-            index={chapter.children.indexOf(transition.from)}
+            key={currentQcm.id}
+            qcm={currentQcm}
+            index={qcmIndex}
             total={total}
-            animClass={transition.direction > 0 ? 'exit-to-top' : 'exit-to-bottom'}
-            interactive={false}
+            animClass={
+              transition
+                ? (transition.direction > 0 ? 'enter-from-bottom' : 'enter-from-top')
+                : ''
+            }
+            interactive={true}
             onAnswer={onAnswer}
           />
-        )}
-
-        {/* Current card — key on qcm.id => remount on change => view state resets to 0 */}
-        <Card
-          key={currentQcm.id}
-          qcm={currentQcm}
-          index={qcmIndex}
-          total={total}
-          animClass={
-            transition
-              ? (transition.direction > 0 ? 'enter-from-bottom' : 'enter-from-top')
-              : ''
-          }
-          interactive={true}
-          onAnswer={onAnswer}
-        />
-      </main>
-
-      {showStats && (
-        <Stats
-          stats={stats}
-          onClose={() => setShowStats(false)}
-          onReset={onResetStats}
-        />
+        </main>
+      ) : (
+        <Stats stats={stats} onReset={onResetStats} />
       )}
     </>
   );
