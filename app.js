@@ -39,10 +39,24 @@ function buildCard(qcm, index, total) {
   idx.textContent = `Question ${index + 1} / ${total}`;
   card.appendChild(idx);
 
-  const title = document.createElement("h2");
-  title.className = "question-title";
-  title.textContent = qcm.title;
-  card.appendChild(title);
+  // --- bloc QCM : <details open> — clic sur la question replie/deplie les reponses ---
+  const qcmBlock = document.createElement("details");
+  qcmBlock.className = "qcm-details";
+  qcmBlock.open = true;
+
+  const summary = document.createElement("summary");
+  summary.className = "question-title";
+  // chevron visuel
+  const chevron = document.createElement("span");
+  chevron.className = "chevron";
+  chevron.setAttribute("aria-hidden", "true");
+  chevron.textContent = "▾";
+  const qText = document.createElement("span");
+  qText.className = "question-text";
+  qText.textContent = qcm.title;
+  summary.appendChild(chevron);
+  summary.appendChild(qText);
+  qcmBlock.appendChild(summary);
 
   const answers = document.createElement("div");
   answers.className = "answers";
@@ -70,14 +84,13 @@ function buildCard(qcm, index, total) {
       e.stopPropagation();
       if (picked.has(a.id)) return;
       picked.add(a.id);
-      // redraw uniquement la card active (pas de transition)
       redrawCurrentCard();
     });
     answers.appendChild(btn);
   });
-  card.appendChild(answers);
+  qcmBlock.appendChild(answers);
 
-  // toolbar
+  // toolbar (dans le bloc QCM, se replie avec lui)
   const toolbar = document.createElement("div");
   toolbar.className = "toolbar";
 
@@ -107,7 +120,34 @@ function buildCard(qcm, index, total) {
     score.textContent += "  ✓";
   }
   toolbar.appendChild(score);
-  card.appendChild(toolbar);
+  qcmBlock.appendChild(toolbar);
+
+  card.appendChild(qcmBlock);
+
+  // --- bloc Explication : <details> fermé par défaut, frère du bloc QCM ---
+  if (qcm.explanation) {
+    const expl = document.createElement("details");
+    expl.className = "explanation-details";
+
+    const esum = document.createElement("summary");
+    esum.className = "explanation-summary";
+    const echev = document.createElement("span");
+    echev.className = "chevron";
+    echev.setAttribute("aria-hidden", "true");
+    echev.textContent = "▸";
+    const elabel = document.createElement("span");
+    elabel.textContent = "Explication";
+    esum.appendChild(echev);
+    esum.appendChild(elabel);
+    expl.appendChild(esum);
+
+    const body = document.createElement("div");
+    body.className = "explanation-body";
+    body.textContent = qcm.explanation;
+    expl.appendChild(body);
+
+    card.appendChild(expl);
+  }
 
   // indice bas/haut
   const hint = document.createElement("div");
