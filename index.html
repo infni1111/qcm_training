@@ -2,35 +2,21 @@
 <html lang="fr">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>CCNA Training</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <header class="app-header">
-    <h1 id="app-title">CCNA Training</h1>
+    <div class="header-row">
+      <h1 id="app-title">CCNA Training</h1>
+      <span id="counter" class="counter">–</span>
+    </div>
+    <div id="chapters" class="strip" aria-label="Chapitres"></div>
   </header>
 
-  <main class="app-main">
-    <section class="level level-1">
-      <h2 class="level-label">Chapitres</h2>
-      <div id="chapters" class="strip"></div>
-    </section>
-
-    <section class="level level-2">
-      <h2 class="level-label">Questions</h2>
-      <div id="qcms" class="strip"></div>
-    </section>
-
-    <section class="level level-3">
-      <h2 class="level-label">Réponses</h2>
-      <div id="question-title" class="question-title"></div>
-      <div id="answers" class="answers"></div>
-      <div class="toolbar">
-        <button id="reset-btn" type="button">Réinitialiser</button>
-        <span id="score" class="score"></span>
-      </div>
-    </section>
+  <main id="feed" class="feed" aria-label="Questions">
+    <!-- cards (1 par QCM) injectées par app.js -->
   </main>
 
   <script src="data.js"></script>

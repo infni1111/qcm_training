@@ -1,5 +1,6 @@
 :root {
   --bg:        #0f172a;
+  --bg-2:      #0b1324;
   --panel:     #1e293b;
   --panel-2:   #273549;
   --text:      #e2e8f0;
@@ -9,6 +10,7 @@
   --ok:        #22c55e;
   --ko:        #ef4444;
   --border:    #334155;
+  --header-h:  96px;
 }
 
 * { box-sizing: border-box; }
@@ -21,60 +23,63 @@ html, body {
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   font-size: 16px;
   line-height: 1.4;
+  height: 100%;
+  overflow: hidden; /* scroll se passe dans .feed */
 }
 
 .app-header {
-  padding: 14px 16px;
-  background: var(--panel);
+  height: var(--header-h);
+  padding: 10px 12px 8px;
+  background: linear-gradient(180deg, var(--panel) 0%, var(--bg-2) 100%);
   border-bottom: 1px solid var(--border);
-  position: sticky;
-  top: 0;
-  z-index: 10;
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
 }
 .app-header h1 {
   margin: 0;
-  font-size: 1.15rem;
+  font-size: 1.05rem;
   letter-spacing: .3px;
 }
-
-.app-main {
-  max-width: 480px;
-  margin: 0 auto;
-  padding: 12px;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.level-label {
-  margin: 0 0 8px 0;
-  font-size: .78rem;
-  text-transform: uppercase;
+.counter {
+  font-size: .8rem;
   color: var(--muted);
-  letter-spacing: .12em;
+  background: var(--panel-2);
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  white-space: nowrap;
 }
 
 .strip {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   overflow-x: auto;
-  padding-bottom: 6px;
-  scrollbar-width: thin;
+  padding-bottom: 2px;
+  scrollbar-width: none;
 }
-.strip::-webkit-scrollbar { height: 6px; }
-.strip::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+.strip::-webkit-scrollbar { display: none; }
 
 .pill {
   flex: 0 0 auto;
-  padding: 8px 12px;
+  padding: 6px 10px;
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: 999px;
   color: var(--text);
-  font-size: .9rem;
+  font-size: .82rem;
   cursor: pointer;
   white-space: nowrap;
-  max-width: 80vw;
+  max-width: 85vw;
   overflow: hidden;
   text-overflow: ellipsis;
   transition: background .15s, border-color .15s;
@@ -87,14 +92,50 @@ html, body {
   font-weight: 600;
 }
 
+/* --- Feed type TikTok : scroll vertical + snap --- */
+.feed {
+  position: absolute;
+  top: var(--header-h);
+  left: 0; right: 0; bottom: 0;
+  overflow-y: scroll;
+  scroll-snap-type: y mandatory;
+  scroll-behavior: smooth;
+  overscroll-behavior-y: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.card {
+  scroll-snap-align: start;
+  scroll-snap-stop: always;
+  height: calc(100vh - var(--header-h));
+  height: calc(100dvh - var(--header-h)); /* iOS safe */
+  padding: 14px 14px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow-y: auto; /* si qcm trop grand */
+}
+
+.card + .card {
+  border-top: 1px dashed var(--border);
+}
+
+.card-index {
+  font-size: .72rem;
+  color: var(--muted);
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+
 .question-title {
-  margin: 4px 0 10px 0;
-  padding: 10px 12px;
+  margin: 0;
+  padding: 14px 14px;
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 10px;
-  font-size: .98rem;
-  min-height: 2.4em;
+  border-radius: 12px;
+  font-size: 1.05rem;
+  font-weight: 600;
+  min-height: 3em;
 }
 
 .answers {
@@ -105,14 +146,18 @@ html, body {
 
 .answer {
   text-align: left;
-  padding: 12px 14px;
+  padding: 13px 14px;
   background: var(--panel);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 12px;
   color: var(--text);
   font-size: .95rem;
   cursor: pointer;
   transition: background .15s, border-color .15s, transform .05s;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
 }
 .answer:hover { background: var(--panel-2); }
 .answer:active { transform: scale(.995); }
@@ -126,7 +171,6 @@ html, body {
   border-color: var(--ko);
 }
 .answer .mark {
-  float: right;
   font-weight: 700;
   margin-left: 8px;
 }
@@ -136,10 +180,12 @@ html, body {
 .toolbar {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 10px;
-  margin-top: 10px;
+  margin-top: auto; /* colle en bas de la card */
+  padding-top: 8px;
 }
-#reset-btn {
+.reset-btn {
   padding: 8px 12px;
   background: var(--panel-2);
   border: 1px solid var(--border);
@@ -148,16 +194,25 @@ html, body {
   cursor: pointer;
   font-size: .85rem;
 }
-#reset-btn:hover { background: #32425c; }
+.reset-btn:hover { background: #32425c; }
 
 .score {
   color: var(--muted);
-  font-size: .9rem;
+  font-size: .88rem;
 }
 .score.done { color: var(--ok); font-weight: 600; }
+
+.hint {
+  color: var(--muted);
+  font-size: .78rem;
+  text-align: center;
+  opacity: .8;
+}
 
 .empty {
   color: var(--muted);
   font-style: italic;
   font-size: .9rem;
+  padding: 20px;
+  text-align: center;
 }
