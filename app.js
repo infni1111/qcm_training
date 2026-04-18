@@ -1,65 +1,38 @@
-// Rendu style TikTok : une "card" plein écran par QCM dans un conteneur scroll-snap.
-// Le chapitre actif change le feed ; scroll vertical pour passer d'un QCM au suivant.
+// Feed discret type TikTok : une SEULE card visible à la fois.
+// Un geste (swipe / wheel / flèches) déclenche une transition "escalier" vers la card voisine.
+// Pas de scroll continu, pas d'état intermédiaire manipulable par le doigt.
 
 const state = {
   chapterId: null,
-  qcmId: null,        // mis à jour par l'IntersectionObserver
-  picks: {}           // qcmId -> Set(answerId)
+  qcmIndex: 0,              // index dans chapter.children
+  picks: {},                // qcmId -> Set(answerId)
+  animating: false
 };
+
+const SWIPE_THRESHOLD_PX = 50;     // distance min pour valider un swipe
+const SWIPE_MAX_DURATION_MS = 600; // au-delà on ignore (pas un flick)
+const WHEEL_COOLDOWN_MS = 400;     // anti-répétition wheel
 
 const $ = (id) => document.getElementById(id);
 
 function currentChapter() {
   return APP_DATA.children.find(c => c.id === state.chapterId) || null;
 }
+function currentQcm() {
+  const ch = currentChapter();
+  return ch ? ch.children[state.qcmIndex] : null;
+}
 function picksFor(qcmId) {
   if (!state.picks[qcmId]) state.picks[qcmId] = new Set();
   return state.picks[qcmId];
 }
 
-function renderChapters() {
-  const root = $("chapters");
-  root.innerHTML = "";
-  APP_DATA.children.forEach(ch => {
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "pill" + (ch.id === state.chapterId ? " active" : "");
-    btn.textContent = ch.title;
-    btn.addEventListener("click", () => {
-      if (ch.id === state.chapterId) return;
-      state.chapterId = ch.id;
-      state.qcmId = ch.children[0] ? ch.children[0].id : null;
-      renderChapters();
-      renderFeed();
-    });
-    root.appendChild(btn);
-  });
-}
+/* ------------------------- CARDS ------------------------- */
 
-function renderFeed() {
-  const feed = $("feed");
-  feed.innerHTML = "";
-  const chapter = currentChapter();
-  if (!chapter || chapter.children.length === 0) {
-    feed.innerHTML = '<div class="empty">Aucune question dans ce chapitre.</div>';
-    updateCounter();
-    return;
-  }
-
-  chapter.children.forEach((qcm, i) => {
-    feed.appendChild(renderCard(qcm, i, chapter.children.length));
-  });
-
-  feed.scrollTop = 0;
-  observeCards();
-  updateCounter();
-}
-
-function renderCard(qcm, index, total) {
+function buildCard(qcm, index, total) {
   const card = document.createElement("section");
   card.className = "card";
   card.dataset.qcmId = qcm.id;
-  card.dataset.index = String(index);
 
   const idx = document.createElement("div");
   idx.className = "card-index";
@@ -93,18 +66,18 @@ function renderCard(qcm, index, total) {
       btn.appendChild(mark);
     }
 
-    btn.addEventListener("click", () => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
       if (picked.has(a.id)) return;
       picked.add(a.id);
-      const fresh = renderCard(qcm, index, total);
-      card.replaceWith(fresh);
-      observeCards();
+      // redraw uniquement la card active (pas de transition)
+      redrawCurrentCard();
     });
     answers.appendChild(btn);
   });
   card.appendChild(answers);
 
-  // toolbar bas de card
+  // toolbar
   const toolbar = document.createElement("div");
   toolbar.className = "toolbar";
 
@@ -112,11 +85,10 @@ function renderCard(qcm, index, total) {
   reset.type = "button";
   reset.className = "reset-btn";
   reset.textContent = "Réinitialiser";
-  reset.addEventListener("click", () => {
+  reset.addEventListener("click", (e) => {
+    e.stopPropagation();
     state.picks[qcm.id] = new Set();
-    const fresh = renderCard(qcm, index, total);
-    card.replaceWith(fresh);
-    observeCards();
+    redrawCurrentCard();
   });
   toolbar.appendChild(reset);
 
@@ -137,49 +109,186 @@ function renderCard(qcm, index, total) {
   toolbar.appendChild(score);
   card.appendChild(toolbar);
 
-  // indicateur swipe pour QCM suivant
-  if (index < total - 1) {
-    const hint = document.createElement("div");
-    hint.className = "hint";
-    hint.textContent = "↓ swipe pour la question suivante";
-    card.appendChild(hint);
-  }
+  // indice bas/haut
+  const hint = document.createElement("div");
+  hint.className = "hint";
+  const parts = [];
+  if (index > 0)          parts.push("↑ précédente");
+  if (index < total - 1)  parts.push("↓ suivante");
+  hint.textContent = parts.join("   ·   ") || "Fin du chapitre";
+  card.appendChild(hint);
 
   return card;
 }
 
-// --- IntersectionObserver : met à jour state.qcmId quand une card est dominante ---
-let io = null;
-function observeCards() {
-  if (io) io.disconnect();
+function redrawCurrentCard() {
   const feed = $("feed");
-  io = new IntersectionObserver(
-    (entries) => {
-      // sélectionner l'entrée avec le plus grand ratio visible
-      let best = null;
-      entries.forEach(e => {
-        if (!best || e.intersectionRatio > best.intersectionRatio) best = e;
-      });
-      if (best && best.isIntersecting && best.intersectionRatio >= 0.5) {
-        const qcmId = best.target.dataset.qcmId;
-        if (qcmId !== state.qcmId) {
-          state.qcmId = qcmId;
-          updateCounter();
-        }
-      }
-    },
-    { root: feed, threshold: [0.5, 0.75, 1] }
-  );
-  feed.querySelectorAll(".card").forEach(c => io.observe(c));
+  const existing = feed.querySelector(".card");
+  if (!existing) return;
+  const chapter = currentChapter();
+  const qcm = chapter.children[state.qcmIndex];
+  const fresh = buildCard(qcm, state.qcmIndex, chapter.children.length);
+  existing.replaceWith(fresh);
+  renderDots();
+}
+
+/* ------------------------- TRANSITIONS ------------------------- */
+
+function goTo(targetIndex, direction /* +1 next, -1 prev */) {
+  if (state.animating) return;
+  const chapter = currentChapter();
+  if (!chapter) return;
+  const total = chapter.children.length;
+  if (targetIndex < 0 || targetIndex >= total) return;
+  if (targetIndex === state.qcmIndex) return;
+
+  state.animating = true;
+  const feed = $("feed");
+  const current = feed.querySelector(".card");
+  const qcm = chapter.children[targetIndex];
+  const next = buildCard(qcm, targetIndex, total);
+
+  // position initiale du next (hors-écran)
+  next.classList.add(direction > 0 ? "enter-from-bottom" : "enter-from-top");
+  feed.appendChild(next);
+
+  // force un reflow pour que la classe initiale soit prise en compte
+  // avant qu'on retire la classe d'entrée
+  void next.offsetWidth;
+
+  // déclenche la transition
+  next.classList.remove("enter-from-bottom", "enter-from-top");
+  if (current) current.classList.add(direction > 0 ? "exit-to-top" : "exit-to-bottom");
+
+  const cleanup = () => {
+    if (current && current.parentNode) current.parentNode.removeChild(current);
+    state.qcmIndex = targetIndex;
+    state.animating = false;
+    updateCounter();
+    renderDots();
+  };
+  // utilise la fin de transition sur "next"
+  next.addEventListener("transitionend", cleanup, { once: true });
+  // filet de sécurité si transitionend ne tire pas
+  setTimeout(cleanup, 500);
+}
+
+function goNext() {
+  const chapter = currentChapter();
+  if (!chapter) return;
+  if (state.qcmIndex < chapter.children.length - 1) goTo(state.qcmIndex + 1, +1);
+}
+function goPrev() {
+  if (state.qcmIndex > 0) goTo(state.qcmIndex - 1, -1);
+}
+
+/* ------------------------- RENDU GLOBAL ------------------------- */
+
+function renderChapters() {
+  const root = $("chapters");
+  root.innerHTML = "";
+  APP_DATA.children.forEach(ch => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "pill" + (ch.id === state.chapterId ? " active" : "");
+    btn.textContent = ch.title;
+    btn.addEventListener("click", () => {
+      if (ch.id === state.chapterId) return;
+      state.chapterId = ch.id;
+      state.qcmIndex = 0;
+      renderChapters();
+      renderFeedFromScratch();
+    });
+    root.appendChild(btn);
+  });
+}
+
+function renderFeedFromScratch() {
+  const feed = $("feed");
+  feed.innerHTML = "";
+  // rebuild dots placeholder
+  const dots = document.createElement("div");
+  dots.className = "dots";
+  dots.id = "dots";
+  feed.appendChild(dots);
+
+  const chapter = currentChapter();
+  if (!chapter || chapter.children.length === 0) {
+    feed.innerHTML += '<div class="empty">Aucune question dans ce chapitre.</div>';
+    updateCounter();
+    return;
+  }
+  const qcm = chapter.children[state.qcmIndex] || chapter.children[0];
+  const card = buildCard(qcm, state.qcmIndex, chapter.children.length);
+  feed.appendChild(card);
+  updateCounter();
+  renderDots();
+}
+
+function renderDots() {
+  const dots = $("dots");
+  if (!dots) return;
+  dots.innerHTML = "";
+  const chapter = currentChapter();
+  if (!chapter) return;
+  chapter.children.forEach((_, i) => {
+    const d = document.createElement("span");
+    d.className = "dot" + (i === state.qcmIndex ? " active" : "");
+    dots.appendChild(d);
+  });
 }
 
 function updateCounter() {
   const chapter = currentChapter();
   const el = $("counter");
-  if (!chapter || !state.qcmId) { el.textContent = "–"; return; }
-  const idx = chapter.children.findIndex(q => q.id === state.qcmId);
-  el.textContent = idx >= 0 ? `Q ${idx + 1} / ${chapter.children.length}` : "–";
+  if (!chapter) { el.textContent = "–"; return; }
+  el.textContent = `Q ${state.qcmIndex + 1} / ${chapter.children.length}`;
 }
+
+/* ------------------------- GESTES ------------------------- */
+
+function bindGestures() {
+  const feed = $("feed");
+
+  // Touch swipe (discret : pas de suivi du doigt, juste décision au relâcher)
+  let tStart = null;
+  feed.addEventListener("touchstart", (e) => {
+    if (e.touches.length !== 1) return;
+    tStart = { y: e.touches[0].clientY, t: Date.now() };
+  }, { passive: true });
+
+  feed.addEventListener("touchend", (e) => {
+    if (!tStart) return;
+    const t1 = Date.now();
+    const y1 = (e.changedTouches[0] || {}).clientY ?? tStart.y;
+    const dy = tStart.y - y1;                // >0 = doigt a glissé vers le haut
+    const dt = t1 - tStart.t;
+    tStart = null;
+    if (dt > SWIPE_MAX_DURATION_MS) return;
+    if (Math.abs(dy) < SWIPE_THRESHOLD_PX) return;
+    if (dy > 0) goNext(); else goPrev();
+  }, { passive: true });
+
+  // Wheel (desktop / trackpad)
+  let lastWheel = 0;
+  feed.addEventListener("wheel", (e) => {
+    // on bloque le scroll natif pour éviter toute dérive
+    e.preventDefault();
+    const now = Date.now();
+    if (now - lastWheel < WHEEL_COOLDOWN_MS) return;
+    if (Math.abs(e.deltaY) < 8) return;
+    lastWheel = now;
+    if (e.deltaY > 0) goNext(); else goPrev();
+  }, { passive: false });
+
+  // Clavier
+  window.addEventListener("keydown", (e) => {
+    if (["ArrowDown", "PageDown", " "].includes(e.key)) { e.preventDefault(); goNext(); }
+    else if (["ArrowUp", "PageUp"].includes(e.key))      { e.preventDefault(); goPrev(); }
+  });
+}
+
+/* ------------------------- INIT ------------------------- */
 
 function init() {
   $("app-title").textContent = APP_DATA.title;
@@ -188,11 +297,12 @@ function init() {
   const first = APP_DATA.children[0];
   if (first) {
     state.chapterId = first.id;
-    if (first.children[0]) state.qcmId = first.children[0].id;
+    state.qcmIndex = 0;
   }
 
   renderChapters();
-  renderFeed();
+  renderFeedFromScratch();
+  bindGestures();
 }
 
 document.addEventListener("DOMContentLoaded", init);

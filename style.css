@@ -11,6 +11,7 @@
   --ko:        #ef4444;
   --border:    #334155;
   --header-h:  96px;
+  --trans-ms:  260ms;
 }
 
 * { box-sizing: border-box; }
@@ -24,7 +25,8 @@ html, body {
   font-size: 16px;
   line-height: 1.4;
   height: 100%;
-  overflow: hidden; /* scroll se passe dans .feed */
+  overflow: hidden; /* pas de scroll global */
+  overscroll-behavior: none;
 }
 
 .app-header {
@@ -92,33 +94,36 @@ html, body {
   font-weight: 600;
 }
 
-/* --- Feed type TikTok : scroll vertical + snap --- */
+/* --- Feed discret : une seule card visible, transitions step --- */
 .feed {
-  position: absolute;
+  position: fixed;
   top: var(--header-h);
   left: 0; right: 0; bottom: 0;
-  overflow-y: scroll;
-  scroll-snap-type: y mandatory;
-  scroll-behavior: smooth;
-  overscroll-behavior-y: contain;
-  -webkit-overflow-scrolling: touch;
+  overflow: hidden;               /* pas de scroll natif */
+  background: var(--bg);
+  touch-action: pan-x;            /* on gère nous-même le pan-y */
 }
 
 .card {
-  scroll-snap-align: start;
-  scroll-snap-stop: always;
-  height: calc(100vh - var(--header-h));
-  height: calc(100dvh - var(--header-h)); /* iOS safe */
+  position: absolute;
+  inset: 0;
   padding: 14px 14px 20px;
   display: flex;
   flex-direction: column;
   gap: 10px;
-  overflow-y: auto; /* si qcm trop grand */
+  overflow-y: auto;               /* si qcm trop grand, scroll INTERNE a la card */
+  will-change: transform, opacity;
+  transform: translate3d(0, 0, 0);
+  transition: transform var(--trans-ms) cubic-bezier(.22,.61,.36,1),
+              opacity   var(--trans-ms) ease;
+  background: var(--bg);
 }
 
-.card + .card {
-  border-top: 1px dashed var(--border);
-}
+/* états d'entrée/sortie pour animation discrete */
+.card.enter-from-bottom { transform: translate3d(0, 100%, 0); }
+.card.enter-from-top    { transform: translate3d(0, -100%, 0); }
+.card.exit-to-top       { transform: translate3d(0, -100%, 0); opacity: .2; }
+.card.exit-to-bottom    { transform: translate3d(0, 100%, 0);  opacity: .2; }
 
 .card-index {
   font-size: .72rem;
@@ -182,7 +187,7 @@ html, body {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  margin-top: auto; /* colle en bas de la card */
+  margin-top: auto;
   padding-top: 8px;
 }
 .reset-btn {
@@ -206,7 +211,30 @@ html, body {
   color: var(--muted);
   font-size: .78rem;
   text-align: center;
-  opacity: .8;
+  opacity: .7;
+  user-select: none;
+}
+
+/* petit indicateur de position à droite (points) */
+.dots {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  z-index: 5;
+  pointer-events: none;
+}
+.dots .dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--border);
+  transition: background .2s, transform .2s;
+}
+.dots .dot.active {
+  background: var(--accent);
+  transform: scale(1.6);
 }
 
 .empty {
