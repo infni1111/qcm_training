@@ -129,6 +129,14 @@ export function summarize(qcm_stats) {
   };
 }
 
+// "Bad score" predicate (library helper; the current <Stats> filter uses
+// `wrong > 0` directly, but callers may prefer a stricter cutoff).
+// Defaults: at least 2 attempts AND rate strictly below 0.5.
+export function isBad(summary, { minAttempts = 2, threshold = 0.5 } = {}) {
+  if (summary.attempts < minAttempts) return false;
+  return summary.rate !== null && summary.rate < threshold;
+}
+
 // Per-chapter aggregate. Returns [{ chapter, attempts, correct, wrong, rate }].
 export function chapterAggregates(stats) {
   return statsChapters(stats).map((ch) => {
