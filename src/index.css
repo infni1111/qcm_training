@@ -16,16 +16,18 @@
 
 * { box-sizing: border-box; }
 
-html, body {
+html, body, #root {
   margin: 0;
   padding: 0;
+  height: 100%;
+}
+body {
   background: var(--bg);
   color: var(--text);
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   font-size: 16px;
   line-height: 1.4;
-  height: 100%;
-  overflow: hidden; /* pas de scroll global */
+  overflow: hidden;
   overscroll-behavior: none;
 }
 
@@ -85,6 +87,7 @@ html, body {
   overflow: hidden;
   text-overflow: ellipsis;
   transition: background .15s, border-color .15s;
+  font-family: inherit;
 }
 .pill:hover { background: var(--panel-2); }
 .pill.active {
@@ -94,14 +97,13 @@ html, body {
   font-weight: 600;
 }
 
-/* --- Feed discret : une seule card visible, transitions step --- */
 .feed {
   position: fixed;
   top: var(--header-h);
   left: 0; right: 0; bottom: 0;
-  overflow: hidden;               /* pas de scroll natif */
+  overflow: hidden;
   background: var(--bg);
-  touch-action: pan-x;            /* on gère nous-même le pan-y */
+  touch-action: pan-x;
 }
 
 .card {
@@ -111,19 +113,35 @@ html, body {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  overflow-y: auto;               /* si qcm trop grand, scroll INTERNE a la card */
+  overflow-y: auto;
+  background: var(--bg);
   will-change: transform, opacity;
   transform: translate3d(0, 0, 0);
   transition: transform var(--trans-ms) cubic-bezier(.22,.61,.36,1),
               opacity   var(--trans-ms) ease;
-  background: var(--bg);
 }
 
-/* états d'entrée/sortie pour animation discrete */
-.card.enter-from-bottom { transform: translate3d(0, 100%, 0); }
-.card.enter-from-top    { transform: translate3d(0, -100%, 0); }
-.card.exit-to-top       { transform: translate3d(0, -100%, 0); opacity: .2; }
-.card.exit-to-bottom    { transform: translate3d(0, 100%, 0);  opacity: .2; }
+.card.enter-from-bottom { animation: slide-in-from-bottom var(--trans-ms) cubic-bezier(.22,.61,.36,1) both; }
+.card.enter-from-top    { animation: slide-in-from-top    var(--trans-ms) cubic-bezier(.22,.61,.36,1) both; }
+.card.exit-to-top       { animation: slide-out-to-top     var(--trans-ms) ease both; }
+.card.exit-to-bottom    { animation: slide-out-to-bottom  var(--trans-ms) ease both; }
+
+@keyframes slide-in-from-bottom {
+  from { transform: translate3d(0, 100%, 0); }
+  to   { transform: translate3d(0, 0, 0); }
+}
+@keyframes slide-in-from-top {
+  from { transform: translate3d(0, -100%, 0); }
+  to   { transform: translate3d(0, 0, 0); }
+}
+@keyframes slide-out-to-top {
+  from { transform: translate3d(0, 0, 0); opacity: 1; }
+  to   { transform: translate3d(0, -100%, 0); opacity: .2; }
+}
+@keyframes slide-out-to-bottom {
+  from { transform: translate3d(0, 0, 0); opacity: 1; }
+  to   { transform: translate3d(0, 100%, 0); opacity: .2; }
+}
 
 .card-index {
   font-size: .72rem;
@@ -132,14 +150,13 @@ html, body {
   text-transform: uppercase;
 }
 
-/* --- Bloc QCM : question toujours visible + reponses --- */
+/* --- QCM view (view=0) --- */
 .qcm-block {
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
 
-/* La question est un <button> cliquable qui toggle l'explication */
 button.question-title {
   appearance: none;
   width: 100%;
@@ -161,41 +178,11 @@ button.question-title {
   transition: border-color .15s, background .15s;
 }
 button.question-title:hover { background: var(--panel-2); }
-button.question-title.open {
-  border-color: var(--accent);
-}
 button.question-title .chevron {
   color: var(--accent);
   margin-top: 2px;
   flex: 0 0 auto;
-  transition: transform .2s;
   display: inline-block;
-}
-button.question-title.open .chevron {
-  transform: rotate(90deg);
-}
-
-/* --- Explication : cachée par défaut (attribut hidden), révélée au clic --- */
-.explanation {
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: rgba(56, 189, 248, .06);
-  padding: 10px 14px 12px;
-}
-.explanation[hidden] { display: none; }
-.explanation-label {
-  font-size: .78rem;
-  text-transform: uppercase;
-  letter-spacing: .12em;
-  font-weight: 600;
-  color: var(--accent);
-  margin-bottom: 6px;
-}
-.explanation-body {
-  color: var(--text);
-  font-size: .92rem;
-  line-height: 1.55;
-  white-space: pre-wrap;
 }
 
 .answers {
@@ -213,6 +200,7 @@ button.question-title.open .chevron {
   color: var(--text);
   font-size: .95rem;
   cursor: pointer;
+  font-family: inherit;
   transition: background .15s, border-color .15s, transform .05s;
   display: flex;
   align-items: center;
@@ -221,7 +209,6 @@ button.question-title.open .chevron {
 }
 .answer:hover { background: var(--panel-2); }
 .answer:active { transform: scale(.995); }
-
 .answer.correct {
   background: rgba(34, 197, 94, .15);
   border-color: var(--ok);
@@ -253,6 +240,7 @@ button.question-title.open .chevron {
   border-radius: 8px;
   cursor: pointer;
   font-size: .85rem;
+  font-family: inherit;
 }
 .reset-btn:hover { background: #32425c; }
 
@@ -262,6 +250,47 @@ button.question-title.open .chevron {
 }
 .score.done { color: var(--ok); font-weight: 600; }
 
+/* --- Explanation view (view=1) --- */
+.explanation-block {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+}
+
+button.explanation-title {
+  appearance: none;
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
+  margin: 0;
+  padding: 12px 14px;
+  background: rgba(56, 189, 248, .10);
+  border: 1px solid var(--accent);
+  border-radius: 12px;
+  color: var(--accent);
+  font-size: .95rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+button.explanation-title:hover { background: rgba(56, 189, 248, .18); }
+button.explanation-title .chevron.open { transform: rotate(0deg); }
+
+.explanation-body {
+  padding: 14px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  color: var(--text);
+  font-size: .95rem;
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
+/* --- Hints and dots --- */
 .hint {
   color: var(--muted);
   font-size: .78rem;
@@ -270,7 +299,6 @@ button.question-title.open .chevron {
   user-select: none;
 }
 
-/* petit indicateur de position à droite (points) */
 .dots {
   position: absolute;
   right: 10px;
@@ -290,12 +318,4 @@ button.question-title.open .chevron {
 .dots .dot.active {
   background: var(--accent);
   transform: scale(1.6);
-}
-
-.empty {
-  color: var(--muted);
-  font-style: italic;
-  font-size: .9rem;
-  padding: 20px;
-  text-align: center;
 }
