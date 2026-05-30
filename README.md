@@ -1,12 +1,15 @@
 # CCNA Training
 
-A mobile-first QCM (multiple-choice-question) training app for CCNA exam
-preparation. One question per screen, TikTok-style discrete swipe to move to
-the next one, a concept explanation behind every question, and per-chapter
-progression statistics stored locally.
+A mobile-first **flashcard** training app for CCNA exam preparation. One concept
+per screen, TikTok-style discrete swipe to move to the next one. Each card shows
+a concept term on the front; you recall the definition from memory, tap to
+*reveal* the explanation on the back, then self-rate "Je connais" / "Je ne
+connais pas". Knowledge rate is tracked per device.
 
-**Status:** step 1 complete (frontend + minimal Flask static server). Steps 2
-(REST API) and 3 (persistent database) are not implemented yet.
+**Status:** flashcard frontend complete (migrated from the earlier
+multiple-choice QCM model). The card content in `data.js` is generated from a
+PostgreSQL `db_course.cisco` table. A minimal Flask static server serves the
+build. The REST API and live database integration are not implemented yet.
 
 ---
 
@@ -21,15 +24,15 @@ per-device stats branch.
 ```
 root (L0) — title "CCNA Training"
 ├── chapters (L1)                         APP_DATA.children[0]
-│   └── chapter (L2)                      ch1 … ch6
-│       └── qcm (L3)                      ch1_q1 … ch6_q5
-│           └── answer (L4)               each { text, correct: boolean }
+│   └── chapter (L2)                      "cisco" (Cisco Concepts)
+│       └── card (L3)                     c1 … c82  (81 cards; ids are not gapless)
+│                                          each { concept, explanation } — NO children
 │
 └── stats (L1)                            loadStats() → built from localStorage
     └── chapter (L2)                      same ids as under 'chapters'
-        └── [qcm_id, qcm_stats] (L3)      a 2-tuple list:
-                                           qcm_stats = [[ts_ms, value], …]
-                                           value ∈ {0: wrong click, 1: correct click}
+        └── [card_id, card_stats] (L3)    a 2-tuple list:
+                                           card_stats = [[ts_ms, value], …]
+                                           value ∈ {0: "I don't know", 1: "I know"}
 ```
 
 > Every node carries its level number as a hint; the code never branches on it —
@@ -59,32 +62,32 @@ root lets the UI treat them symmetrically — see the app-level
 App                                  src/App.jsx
 ├── <header>
 │   ├── <h1>CCNA Training</h1>
-│   ├── .view-switch                  ← appView useState: 0=Chapters | 1=Stats
-│   └── .strip (chapters pills)       ← only when appView === 0
+│   ├── .view-switch                  ← appView useState: 0=Concepts | 1=Stats
+│   └── .strip (chapters pills)       ← only when appView === 0 && >1 chapter
 │
 ├── <main className="feed">           ← appView === 0
-│   ├── .dots                         (position indicator inside chapter)
-│   └── Card (keyed by qcm.id)        src/Card.jsx
-│       ├── view useState             ← 0: QCM | 1: Explanation
-│       ├── picks useState            ← Set of answer ids already clicked
-│       ├── Qcm                       src/Qcm.jsx   (view === 0)
+│   ├── .dots                         (position indicator, only if ≤15 cards)
+│   └── Card (keyed by card.id)       src/Card.jsx
+│       ├── view useState             ← 0: Concept (front) | 1: Explanation (back)
+│       ├── rating useState           ← null | 1 (known) | 0 (unknown)
+│       ├── Concept                   src/Concept.jsx     (view === 0)
 │       └── Explanation               src/Explanation.jsx (view === 1)
 │
 └── <main className="stats-view">     ← appView === 1
     └── Stats                         src/Stats.jsx
-        ├── KPIs (total / correct / rate)
-        ├── filter checkbox "Show questions answered wrong"
+        ├── KPIs (Notes totales / Connus / Taux de connaissance)
+        ├── filter checkbox "Concepts à revoir"
         └── list:
             - default: one row per chapter (aggregate rate)
-            - filtered: one row per QCM with wrong > 0
+            - filtered: one row per card with wrong > 0 (rated "unknown")
 ```
 
 ### 2.1. Two view switches — the same pattern at two scales
 
-| Scope     | State owner   | Values              | UI            |
-|-----------|---------------|---------------------|---------------|
-| App       | `App.jsx`     | 0 chapters / 1 stats| Header tabs   |
-| Card      | `Card.jsx`    | 0 qcm / 1 explanation | Clickable question / explanation title |
+| Scope     | State owner   | Values                  | UI            |
+|-----------|---------------|-------------------------|---------------|
+| App       | `App.jsx`     | 0 concepts / 1 stats    | Header tabs   |
+| Card      | `Card.jsx`    | 0 concept / 1 explanation | "Révéler" button / explanation title |
 
 Both switches render **one** of two sibling components at a time. This is
 deliberate: *there is no intermediate state where both are half-visible*.
@@ -93,16 +96,16 @@ deliberate: *there is no intermediate state where both are half-visible*.
 
 ## 3. Key invariants to know before editing
 
-### 3.1. `<Card key={qcm.id}>` → state resets when leaving a card
+### 3.1. `<Card key={card.id}>` → state resets when leaving a card
 
-In `App.jsx`, the `<Card>` element is keyed by `currentQcm.id`. Navigating to a
-new QCM changes that key, so React **unmounts** the old `<Card>` and mounts a
-fresh one. Both `view` (QCM/Explanation) and `picks` (clicked answers) live
-inside `Card`, so they automatically reset to `0` / empty for the new question.
-This is exactly what the user asked for with: "when I leave, the state returns
-to its default."
+In `App.jsx`, the `<Card>` element is keyed by `currentQcm.id` (the current
+card's id). Navigating to a new card changes that key, so React **unmounts** the
+old `<Card>` and mounts a fresh one. Both `view` (Concept/Explanation) and
+`rating` (null/1/0) live inside `Card`, so they automatically reset for the new
+card — it starts on its front, unrated. This is exactly what the user asked for
+with: "when I leave, the state returns to its default."
 
-Do not hoist `view` or `picks` into `App.jsx` — you would break that reset.
+Do not hoist `view` or `rating` into `App.jsx` — you would break that reset.
 
 ### 3.2. Discrete step-function navigation
 
@@ -119,20 +122,21 @@ during the gesture. Logic:
 
 Wheel events use a `WHEEL_COOLDOWN_MS = 400` so one trackpad tick = one step.
 
-### 3.3. One stats event per first click on each answer
+### 3.3. One stats event per card visit
 
-In `Qcm.jsx`, `pick(id)` bails out if the answer is already in `picks`. Only
-the first click triggers `onAnswer(qcm_id, correct)`, which appends
-`[Date.now(), 1|0]` to `qcm_stats`. Re-clicking the same answer does nothing.
-**Clicking Reset does not clear stats** — stats are historical and only
-`clearStats()` (from the Stats view) can wipe them.
+In `Card.jsx`, `rate(value)` bails out if `rating` is already set. Only the
+first rating of a visit triggers `onRate(card_id, value)`, which appends
+`[Date.now(), 1|0]` to that card's `card_stats`. Re-clicking the rate buttons
+does nothing (they are disabled once rated). Navigating away and back is a *new*
+visit (new `<Card>` instance) and records a *new* event. **Stats are historical**
+— only `clearStats()` (the "Clear" button in the Stats view) can wipe them.
 
 ### 3.4. Stats schema migrations
 
 `mergeWithCurrent(saved)` in `stats.js` is deliberately shape-agnostic: it
-walks *any* saved tree and collects every `[qcm_id, events]` leaf pair, then
+walks *any* saved tree and collects every `[card_id, events]` leaf pair, then
 rebuilds a fresh tree under the current schema and re-injects known histories.
-If you change `APP_DATA` (add/remove chapters or QCMs), users don't lose their
+If you change `APP_DATA` (add/remove chapters or cards), users don't lose their
 history — missing ids start with `[]`, unknown ids are silently dropped.
 
 Bump `SCHEMA_VERSION` when the *semantics* of an event change (e.g. if you
@@ -176,11 +180,11 @@ qcm_training/
 ├── src/
 │   ├── main.jsx          React entry
 │   ├── App.jsx           top-level state, header, view switch, gestures
-│   ├── Card.jsx          single-question card; owns view + picks
-│   ├── Qcm.jsx           question + answers (view === 0)
-│   ├── Explanation.jsx   concept explanation (view === 1)
+│   ├── Card.jsx          single flashcard; owns view + rating
+│   ├── Concept.jsx       card front: concept term + "Révéler" (view === 0)
+│   ├── Explanation.jsx   card back: explanation + self-rating (view === 1)
 │   ├── Stats.jsx         inline stats view (appView === 1)
-│   ├── data.js           APP_DATA tree + CHAPTERS alias
+│   ├── data.js           APP_DATA tree + CHAPTERS alias (generated from Postgres)
 │   ├── stats.js          buildEmptyStats, load/save/merge/record/summarize/…
 │   ├── index.css         all styles (dark theme, mobile-first)
 │   └── __tests__/
@@ -220,27 +224,33 @@ qcm_training/
   If you re-introduce finger-following you break the "step function" the user
   insisted on.
 
-- **QCM questions are in French, UI labels in English.** This was a deliberate
-  mid-step decision (see the session feedback). Do not auto-translate QCM
-  content — it's CCNA material authored in French on purpose.
+- **`data.js` is generated, not hand-authored.** The header comment names the
+  source: a PostgreSQL `db_course.cisco` table (81 rows). Do not hand-edit card
+  content — regenerate it from the table. Card ids run `c1 … c82` with a gap
+  (81 cards), so don't assume ids are contiguous.
+
+- **Card content is in French, UI labels are mixed.** The concept terms and
+  explanations are CCNA material authored in French on purpose — do not
+  auto-translate them. UI strings are a mix of French (rating buttons, stats
+  KPIs) and English (Clear / Stats); that's the current state, not a bug.
 
 ---
 
 ## 7. What's next
 
-- **Step 2 — Flask REST API:** move read/write of chapters and stats behind
-  `/api/*`. The frontend would fetch chapters on boot and POST each answer
-  event. Keep the tree shape as the wire format (it's already JSON-safe).
+- **Step 2 — Flask REST API:** move read/write of cards and stats behind
+  `/api/*`. The frontend would fetch cards on boot and POST each rating event.
+  Keep the tree shape as the wire format (it's already JSON-safe).
 
-- **Step 3 — Persistent database:** the obvious fit is SQLite (zero-ops) with
-  three tables: `chapters`, `qcms` (with `explanation`), `answers`
-  (with `correct`). The stats table would be append-only:
-  `stats(qcm_id, user_id, ts_ms, value)`.
+- **Step 3 — Live database integration:** `data.js` is already *generated* from
+  PostgreSQL `db_course.cisco`, but the running app does not talk to the DB.
+  Step 3 would serve cards from the DB and persist ratings append-only:
+  `stats(card_id, user_id, ts_ms, value)`.
 
-- Nice-to-haves that were declined for step 1:
-  - Per-attempt completion score (float `0..1`) alongside raw click events.
+- Nice-to-haves not yet built:
+  - Spaced-repetition / "review only unknown" study mode.
   - Per-user auth (today: one device = one user).
-  - Progression chart (line graph of daily rate).
+  - Progression chart (line graph of daily knowledge rate).
 
 ---
 
@@ -253,10 +263,9 @@ qcm_training/
   replacements or scripted `sed`/`python` transforms.
 - **Re-run `npm test` after any change to `stats.js` or `data.js`.** The tests
   lock in the tree shape and the merge semantics.
-- **The user is French** and appreciates a corrected English transcription of
-  their prompt at the start of each reply (stored in auto-memory as
-  `feedback_english_correction`). They also prefer English-only for code and
-  code comments now (set during step 1.5).
+- **The user is French.** Code and code comments are English-only (set during
+  step 1.5). Card *content* stays French (it's the source material); some UI
+  strings are French by the user's choice.
 - **`python3 server.py` is already running** in the background during an
   active session. Probe it with `curl` before starting a new one.
 - **Never commit `dist/` or `node_modules/`** — both are in `.gitignore`.

@@ -1,292 +1,517 @@
-// Tree data: root -> chapters (wrapper) -> chapter -> QCM -> answer.
-// Levels: root=0, chapters=1, chapter=2, QCM=3, answer=4.
-// Each QCM: { title, explanation, children: [answers] }.
-// Each answer: { text, correct }. A QCM may have several correct answers.
+// Generated from PostgreSQL db_course.cisco (81 rows) — do not hand-edit.
+// Regenerate with: node /tmp/gen_data.mjs  (after dumping the table to /tmp/cisco_dump.json).
+//
+// Flashcard tree: root(0) -> chapters(1) -> chapter(2) -> card(3).
+// Each card: { concept, explanation }. The UI is self-assessment ("I know" /
+// "I don't know"), so cards have NO answers/children.
 
 export const APP_DATA = {
-  level: 0,
-  id: 'root',
-  title: 'CCNA Training',
-  children: [
+  "level": 0,
+  "id": "root",
+  "title": "CCNA Training",
+  "children": [
     {
-      level: 1,
-      id: 'chapters',
-      title: 'Chapters',
-      children: [
-    {
-      level: 2, id: 'ch1', title: 'Ch. 1 — Network Fundamentals',
-      children: [
-        { level: 3, id: 'ch1_q1', title: "Quelle couche du modèle OSI gère le routage IP ?",
-          explanation: "Le routage IP s'effectue à la couche 3 (Réseau) du modèle OSI. Cette couche gère l'adressage logique (IP) et la sélection du meilleur chemin entre réseaux distincts. La couche 2 manipule des adresses MAC (même segment), la couche 4 gère le transport de bout en bout (TCP/UDP), et la couche 7 est applicative (HTTP, DNS…).",
-          children: [
-            { level: 4, id: 'ch1_q1_a1', text: 'Couche 2 (Liaison)',     correct: false },
-            { level: 4, id: 'ch1_q1_a2', text: 'Couche 3 (Réseau)',      correct: true  },
-            { level: 4, id: 'ch1_q1_a3', text: 'Couche 4 (Transport)',   correct: false },
-            { level: 4, id: 'ch1_q1_a4', text: 'Couche 7 (Application)', correct: false },
-          ]},
-        { level: 3, id: 'ch1_q2', title: "Parmi ces adresses, lesquelles sont privées (RFC 1918) ?",
-          explanation: "La RFC 1918 définit trois plages privées, non routables sur Internet : 10.0.0.0/8, 172.16.0.0/12 (172.16.0.0 – 172.31.255.255) et 192.168.0.0/16. 8.8.8.8 est une adresse publique (DNS Google). Ces plages privées nécessitent du NAT pour sortir vers Internet.",
-          children: [
-            { level: 4, id: 'ch1_q2_a1', text: '10.0.0.5',      correct: true  },
-            { level: 4, id: 'ch1_q2_a2', text: '172.20.10.1',   correct: true  },
-            { level: 4, id: 'ch1_q2_a3', text: '192.168.1.254', correct: true  },
-            { level: 4, id: 'ch1_q2_a4', text: '8.8.8.8',       correct: false },
-          ]},
-        { level: 3, id: 'ch1_q3', title: "Quel protocole de transport est orienté connexion ?",
-          explanation: "TCP établit une connexion fiable via un 3-way handshake (SYN, SYN-ACK, ACK), numérote les segments, retransmet en cas de perte et contrôle le flux. UDP est sans connexion, plus rapide mais sans garantie (utile pour DNS, VoIP, streaming). ICMP sert au contrôle/diagnostic (ping), ARP résout IP↔MAC.",
-          children: [
-            { level: 4, id: 'ch1_q3_a1', text: 'UDP',  correct: false },
-            { level: 4, id: 'ch1_q3_a2', text: 'TCP',  correct: true  },
-            { level: 4, id: 'ch1_q3_a3', text: 'ICMP', correct: false },
-            { level: 4, id: 'ch1_q3_a4', text: 'ARP',  correct: false },
-          ]},
-        { level: 3, id: 'ch1_q4', title: "Quelle est la taille d'une adresse MAC ?",
-          explanation: "Une adresse MAC fait 48 bits (6 octets), notée en hexadécimal, ex : 00:1A:2B:3C:4D:5E. Les 3 premiers octets (OUI) identifient le fabricant, les 3 derniers sont attribués par lui. Elle est gravée sur la carte réseau mais peut être modifiée logiquement (MAC spoofing).",
-          children: [
-            { level: 4, id: 'ch1_q4_a1', text: '32 bits',  correct: false },
-            { level: 4, id: 'ch1_q4_a2', text: '48 bits',  correct: true  },
-            { level: 4, id: 'ch1_q4_a3', text: '64 bits',  correct: false },
-            { level: 4, id: 'ch1_q4_a4', text: '128 bits', correct: false },
-          ]},
-        { level: 3, id: 'ch1_q5', title: "Masque par défaut d'une adresse de classe C ?",
-          explanation: "En adressage classful (historique), la classe C couvre 192.0.0.0 – 223.255.255.255 avec un masque par défaut /24 (255.255.255.0), soit 256 adresses par réseau. Aujourd'hui on utilise CIDR (VLSM) : le masque est explicite et peut être /25, /26, /30… selon le besoin.",
-          children: [
-            { level: 4, id: 'ch1_q5_a1', text: '/8  (255.0.0.0)',       correct: false },
-            { level: 4, id: 'ch1_q5_a2', text: '/16 (255.255.0.0)',     correct: false },
-            { level: 4, id: 'ch1_q5_a3', text: '/24 (255.255.255.0)',   correct: true  },
-            { level: 4, id: 'ch1_q5_a4', text: '/30 (255.255.255.252)', correct: false },
-          ]},
-      ]
-    },
-    {
-      level: 2, id: 'ch2', title: 'Ch. 2 — Network Access (VLAN, STP)',
-      children: [
-        { level: 3, id: 'ch2_q1', title: "Quelle commande IOS affiche la table de routage ?",
-          explanation: "`show ip route` affiche la table de routage IPv4 : réseaux connus, code source (C=Connected, S=Static, O=OSPF, D=EIGRP, R=RIP, B=BGP), distance administrative, métrique et next-hop. `show running-config` affiche la config active, `show interfaces` l'état physique/logique des interfaces.",
-          children: [
-            { level: 4, id: 'ch2_q1_a1', text: 'show running-config', correct: false },
-            { level: 4, id: 'ch2_q1_a2', text: 'show ip route',       correct: true  },
-            { level: 4, id: 'ch2_q1_a3', text: 'show interfaces',     correct: false },
-            { level: 4, id: 'ch2_q1_a4', text: 'show arp',            correct: false },
-          ]},
-        { level: 3, id: 'ch2_q2', title: "STP : quels rôles de port existent ? (plusieurs)",
-          explanation: "STP (802.1D) évite les boucles L2. Rôles : Root Port (un seul par switch non-root, vers la racine), Designated Port (un par segment, expédie le trafic), Non-Designated/Blocking (bloque pour casser la boucle). RSTP (802.1w) ajoute Alternate et Backup. « Transit port » n'existe pas.",
-          children: [
-            { level: 4, id: 'ch2_q2_a1', text: 'Root port',       correct: true  },
-            { level: 4, id: 'ch2_q2_a2', text: 'Designated port', correct: true  },
-            { level: 4, id: 'ch2_q2_a3', text: 'Blocking port',   correct: true  },
-            { level: 4, id: 'ch2_q2_a4', text: 'Transit port',    correct: false },
-          ]},
-        { level: 3, id: 'ch2_q3', title: "VLAN par défaut sur un switch Cisco ?",
-          explanation: "Le VLAN 1 est le VLAN par défaut : tous les ports y sont assignés après un reset (boot factory). Il ne peut pas être supprimé. Les VLAN 1002–1005 sont réservés à Token Ring/FDDI. Bonne pratique : ne jamais laisser du trafic utilisateur sur le VLAN 1 (cible des attaques).",
-          children: [
-            { level: 4, id: 'ch2_q3_a1', text: 'VLAN 0',    correct: false },
-            { level: 4, id: 'ch2_q3_a2', text: 'VLAN 1',    correct: true  },
-            { level: 4, id: 'ch2_q3_a3', text: 'VLAN 99',   correct: false },
-            { level: 4, id: 'ch2_q3_a4', text: 'VLAN 1002', correct: false },
-          ]},
-        { level: 3, id: 'ch2_q4', title: "Taille du tag 802.1Q ajouté à une trame ?",
-          explanation: "Le tag 802.1Q fait 4 octets, inséré après l'adresse MAC source : 2 octets TPID (0x8100 identifie un tag VLAN) + 2 octets TCI (Priority 3 bits CoS, DEI 1 bit, VLAN ID 12 bits → 4096 VLAN possibles). ISL (Cisco, obsolète) encapsulait au lieu de tagger.",
-          children: [
-            { level: 4, id: 'ch2_q4_a1', text: '2 octets', correct: false },
-            { level: 4, id: 'ch2_q4_a2', text: '4 octets', correct: true  },
-            { level: 4, id: 'ch2_q4_a3', text: '6 octets', correct: false },
-            { level: 4, id: 'ch2_q4_a4', text: '8 octets', correct: false },
-          ]},
-        { level: 3, id: 'ch2_q5', title: "Quels protocoles négocient un EtherChannel ? (plusieurs)",
-          explanation: "EtherChannel agrège plusieurs liens physiques en un lien logique. Deux protocoles de négociation : LACP (standard IEEE 802.3ad, modes active/passive) et PAgP (propriétaire Cisco, modes desirable/auto). Mode « on » = pas de négociation. CDP/LLDP sont des protocoles de découverte voisins, rien à voir.",
-          children: [
-            { level: 4, id: 'ch2_q5_a1', text: 'LACP (802.3ad)', correct: true  },
-            { level: 4, id: 'ch2_q5_a2', text: 'PAgP (Cisco)',   correct: true  },
-            { level: 4, id: 'ch2_q5_a3', text: 'CDP',            correct: false },
-            { level: 4, id: 'ch2_q5_a4', text: 'LLDP',           correct: false },
-          ]},
-      ]
-    },
-    {
-      level: 2, id: 'ch3', title: 'Ch. 3 — IP Connectivity (Routing)',
-      children: [
-        { level: 3, id: 'ch3_q1', title: "Lesquels sont des IGP ? (plusieurs)",
-          explanation: "Un IGP (Interior Gateway Protocol) route à l'intérieur d'un AS : OSPF (link-state), EIGRP (hybride Cisco), RIP (distance-vector), IS-IS (link-state). BGP est un EGP (Exterior Gateway Protocol), utilisé entre AS sur Internet, path-vector.",
-          children: [
-            { level: 4, id: 'ch3_q1_a1', text: 'OSPF',  correct: true  },
-            { level: 4, id: 'ch3_q1_a2', text: 'EIGRP', correct: true  },
-            { level: 4, id: 'ch3_q1_a3', text: 'RIP',   correct: true  },
-            { level: 4, id: 'ch3_q1_a4', text: 'BGP',   correct: false },
-          ]},
-        { level: 3, id: 'ch3_q2', title: "Rôle de l'area 0 en OSPF ?",
-          explanation: "L'area 0 est la backbone area : toutes les autres areas (stub, totally stubby, NSSA) doivent s'y connecter directement ou via un virtual link. Cette topologie hiérarchique évite les boucles inter-area et limite la propagation des LSA.",
-          children: [
-            { level: 4, id: 'ch3_q2_a1', text: 'Stub area',                 correct: false },
-            { level: 4, id: 'ch3_q2_a2', text: 'Backbone area',             correct: true  },
-            { level: 4, id: 'ch3_q2_a3', text: 'Totally stubby area',       correct: false },
-            { level: 4, id: 'ch3_q2_a4', text: 'NSSA (not-so-stubby area)', correct: false },
-          ]},
-        { level: 3, id: 'ch3_q3', title: "Distance administrative (AD) d'OSPF ?",
-          explanation: "L'AD départage deux routes vers la même destination apprises par des sources différentes (la plus petite gagne). Valeurs Cisco usuelles : Connected 0, Static 1, eBGP 20, EIGRP interne 90, OSPF 110, IS-IS 115, RIP 120, EIGRP externe 170, iBGP 200.",
-          children: [
-            { level: 4, id: 'ch3_q3_a1', text: '1',   correct: false },
-            { level: 4, id: 'ch3_q3_a2', text: '90',  correct: false },
-            { level: 4, id: 'ch3_q3_a3', text: '110', correct: true  },
-            { level: 4, id: 'ch3_q3_a4', text: '120', correct: false },
-          ]},
-        { level: 3, id: 'ch3_q4', title: "Quelle est la route par défaut IPv4 ?",
-          explanation: "La route par défaut 0.0.0.0/0 (masque /0) matche toute destination et sert de « gateway of last resort » quand aucune route plus spécifique ne correspond. En IPv6 c'est ::/0. 127.0.0.1 est la loopback, 255.255.255.255 le broadcast limité, 224.0.0.0/4 le multicast.",
-          children: [
-            { level: 4, id: 'ch3_q4_a1', text: '0.0.0.0/0',       correct: true  },
-            { level: 4, id: 'ch3_q4_a2', text: '127.0.0.1/32',    correct: false },
-            { level: 4, id: 'ch3_q4_a3', text: '255.255.255.255', correct: false },
-            { level: 4, id: 'ch3_q4_a4', text: '224.0.0.0/4',     correct: false },
-          ]},
-        { level: 3, id: 'ch3_q5', title: "Quelle commande crée une route statique sur IOS ?",
-          explanation: "Syntaxe : `ip route <réseau> <masque> <next-hop | interface> [AD] [tag]`. Exemple : `ip route 10.0.0.0 255.0.0.0 192.168.1.1`. `ip default-gateway` ne concerne que les devices sans routage activé (switches L2). Les autres syntaxes proposées sont inventées.",
-          children: [
-            { level: 4, id: 'ch3_q5_a1', text: 'ip route 10.0.0.0 255.0.0.0 192.168.1.1', correct: true  },
-            { level: 4, id: 'ch3_q5_a2', text: 'route add 10.0.0.0/8 via 192.168.1.1',    correct: false },
-            { level: 4, id: 'ch3_q5_a3', text: 'static-route 10.0.0.0/8 192.168.1.1',     correct: false },
-            { level: 4, id: 'ch3_q5_a4', text: 'ip default-gateway 192.168.1.1',          correct: false },
-          ]},
-      ]
-    },
-    {
-      level: 2, id: 'ch4', title: 'Ch. 4 — IP Services (DHCP, NAT…)',
-      children: [
-        { level: 3, id: 'ch4_q1', title: "Ordre des messages DHCP pour obtenir une IP ?",
-          explanation: "DORA : Discover (client en broadcast 255.255.255.255 sur UDP 67/68), Offer (serveur propose une IP), Request (client demande formellement), Ack (serveur confirme et fournit lease, masque, gateway, DNS). Un DHCP relay (`ip helper-address`) transporte le Discover vers un serveur d'un autre subnet.",
-          children: [
-            { level: 4, id: 'ch4_q1_a1', text: 'Discover, Offer, Request, Ack (DORA)', correct: true  },
-            { level: 4, id: 'ch4_q1_a2', text: 'Request, Offer, Discover, Ack',        correct: false },
-            { level: 4, id: 'ch4_q1_a3', text: 'Offer, Discover, Ack, Request',        correct: false },
-            { level: 4, id: 'ch4_q1_a4', text: 'Discover, Request, Offer, Ack',        correct: false },
-          ]},
-        { level: 3, id: 'ch4_q2', title: "Types de NAT possibles sur IOS ? (plusieurs)",
-          explanation: "NAT statique (mapping 1:1 fixe, ex : serveur interne vers IP publique). NAT dynamique (1:1 depuis un pool, à la volée). PAT / NAT overload (N:1, plusieurs IP internes partagent une IP publique via des ports différents, cas le plus courant en home/SMB). « NAT multicast » n'existe pas comme type.",
-          children: [
-            { level: 4, id: 'ch4_q2_a1', text: 'NAT statique',    correct: true  },
-            { level: 4, id: 'ch4_q2_a2', text: 'NAT dynamique',   correct: true  },
-            { level: 4, id: 'ch4_q2_a3', text: 'PAT (overload)',  correct: true  },
-            { level: 4, id: 'ch4_q2_a4', text: 'NAT multicast',   correct: false },
-          ]},
-        { level: 3, id: 'ch4_q3', title: "Port et transport utilisés par NTP ?",
-          explanation: "NTP utilise UDP port 123. La notion de stratum indique la distance à la source : stratum 0 = horloge de référence (GPS, atomique), stratum 1 = serveur connecté à la source, … stratum 15 = limite, stratum 16 = non-synchronisé. UDP 67 = DHCP serveur, TCP 69 = TFTP (en réalité UDP 69).",
-          children: [
-            { level: 4, id: 'ch4_q3_a1', text: 'TCP 123', correct: false },
-            { level: 4, id: 'ch4_q3_a2', text: 'UDP 123', correct: true  },
-            { level: 4, id: 'ch4_q3_a3', text: 'UDP 67',  correct: false },
-            { level: 4, id: 'ch4_q3_a4', text: 'TCP 69',  correct: false },
-          ]},
-        { level: 3, id: 'ch4_q4', title: "Syslog : quel est le niveau de sévérité 0 ?",
-          explanation: "Niveaux de sévérité Syslog (0 = le plus grave) : 0 Emergency, 1 Alert, 2 Critical, 3 Error, 4 Warning, 5 Notice, 6 Informational, 7 Debug. `logging trap 4` envoie tout ce qui est ≤ warning. Mnémonique : « Every Awesome Cisco Engineer Will Need Ice-cream Daily ».",
-          children: [
-            { level: 4, id: 'ch4_q4_a1', text: 'Debug',         correct: false },
-            { level: 4, id: 'ch4_q4_a2', text: 'Informational', correct: false },
-            { level: 4, id: 'ch4_q4_a3', text: 'Critical',      correct: false },
-            { level: 4, id: 'ch4_q4_a4', text: 'Emergency',     correct: true  },
-          ]},
-        { level: 3, id: 'ch4_q5', title: "Quel protocole attribue dynamiquement des adresses IPv6 via SLAAC ?",
-          explanation: "SLAAC (StateLess Address Auto-Configuration) : le client envoie un Router Solicitation (RS) en ICMPv6, le routeur répond par un Router Advertisement (RA) contenant le préfixe /64. Le client forge son adresse en concaténant le préfixe + son interface ID (EUI-64 ou random). DHCPv6 est stateful, complémentaire ou alternatif.",
-          children: [
-            { level: 4, id: 'ch4_q5_a1', text: 'DHCPv6',         correct: false },
-            { level: 4, id: 'ch4_q5_a2', text: 'ICMPv6 (RA/RS)', correct: true  },
-            { level: 4, id: 'ch4_q5_a3', text: 'ARP',            correct: false },
-            { level: 4, id: 'ch4_q5_a4', text: 'NAT64',          correct: false },
-          ]},
-      ]
-    },
-    {
-      level: 2, id: 'ch5', title: 'Ch. 5 — Security Fundamentals',
-      children: [
-        { level: 3, id: 'ch5_q1', title: "Types d'ACL standards sur Cisco IOS ? (plusieurs)",
-          explanation: "ACL standard (1-99, 1300-1999) : filtre uniquement sur l'IP source. ACL étendue (100-199, 2000-2699) : filtre source/destination/protocole/ports. Les ACL nommées (ex : `ip access-list extended BLOCK_WEB`) sont une notation, pas un type supplémentaire. « ACL dynamique » (lock-and-key) existe mais pas au CCNA de base.",
-          children: [
-            { level: 4, id: 'ch5_q1_a1', text: 'ACL standard',  correct: true  },
-            { level: 4, id: 'ch5_q1_a2', text: 'ACL étendue',   correct: true  },
-            { level: 4, id: 'ch5_q1_a3', text: 'ACL dynamique', correct: false },
-            { level: 4, id: 'ch5_q1_a4', text: 'ACL multicast', correct: false },
-          ]},
-        { level: 3, id: 'ch5_q2', title: "Sur quel port TCP SSH écoute-t-il par défaut ?",
-          explanation: "SSH = TCP 22, chiffré (AES, clés RSA/ECDSA). Telnet = TCP 23, en clair, à proscrire. HTTP = 80, HTTPS = 443. Sur IOS : `line vty 0 4` puis `transport input ssh` pour n'autoriser que SSH, + `crypto key generate rsa` pour la clé et `username ... secret ...` pour un compte local.",
-          children: [
-            { level: 4, id: 'ch5_q2_a1', text: '22',  correct: true  },
-            { level: 4, id: 'ch5_q2_a2', text: '23',  correct: false },
-            { level: 4, id: 'ch5_q2_a3', text: '80',  correct: false },
-            { level: 4, id: 'ch5_q2_a4', text: '443', correct: false },
-          ]},
-        { level: 3, id: 'ch5_q3', title: "Modes de violation en port-security ? (plusieurs)",
-          explanation: "`switchport port-security violation {protect|restrict|shutdown}`. protect = drop silencieux des trames non autorisées ; restrict = drop + log SNMP/Syslog + incrément du compteur ; shutdown (défaut) = met l'interface en err-disabled, à réactiver manuellement ou via `errdisable recovery`.",
-          children: [
-            { level: 4, id: 'ch5_q3_a1', text: 'protect',  correct: true  },
-            { level: 4, id: 'ch5_q3_a2', text: 'restrict', correct: true  },
-            { level: 4, id: 'ch5_q3_a3', text: 'shutdown', correct: true  },
-            { level: 4, id: 'ch5_q3_a4', text: 'reset',    correct: false },
-          ]},
-        { level: 3, id: 'ch5_q4', title: "Quel chiffrement WPA2 est recommandé ?",
-          explanation: "WPA2 utilise CCMP (basé sur AES), solide cryptographiquement. TKIP date de WPA1 (mitigation de WEP), aujourd'hui considéré faible. WEP (clé RC4 40/104 bits) est cassé depuis longtemps. WPA3 (depuis 2018) introduit SAE (Simultaneous Authentication of Equals) contre les attaques par dictionnaire.",
-          children: [
-            { level: 4, id: 'ch5_q4_a1', text: 'WEP',      correct: false },
-            { level: 4, id: 'ch5_q4_a2', text: 'TKIP',     correct: false },
-            { level: 4, id: 'ch5_q4_a3', text: 'AES/CCMP', correct: true  },
-            { level: 4, id: 'ch5_q4_a4', text: 'DES',      correct: false },
-          ]},
-        { level: 3, id: 'ch5_q5', title: "Différence entre enable password et enable secret ?",
-          explanation: "`enable password` : stocké en clair (type 0) ou faiblement chiffré (type 7 Vigenère, réversible en secondes). `enable secret` : haché en MD5 (type 5) ou scrypt (type 9, recommandé). Si les deux sont configurés, enable secret gagne. `service password-encryption` chiffre les autres mots de passe en type 7 (trompeur, pas sécurisé).",
-          children: [
-            { level: 4, id: 'ch5_q5_a1', text: "enable secret est haché (type 5/9), password est en clair", correct: true  },
-            { level: 4, id: 'ch5_q5_a2', text: "Aucune différence, alias l'un de l'autre",                  correct: false },
-            { level: 4, id: 'ch5_q5_a3', text: "enable password chiffre en AES-256",                        correct: false },
-            { level: 4, id: 'ch5_q5_a4', text: "enable secret n'est utilisable qu'en SSH",                  correct: false },
-          ]},
-      ]
-    },
-    {
-      level: 2, id: 'ch6', title: 'Ch. 6 — Automation & Programmability',
-      children: [
-        { level: 3, id: 'ch6_q1', title: "Caractéristiques d'une API REST ? (plusieurs)",
-          explanation: "REST (Representational State Transfer) : stateless (chaque requête est autonome, aucun état conservé côté serveur entre les appels), utilise HTTP (GET lire, POST créer, PUT/PATCH modifier, DELETE supprimer), ressources identifiées par URI, payload souvent JSON. Pas besoin de session TCP persistante.",
-          children: [
-            { level: 4, id: 'ch6_q1_a1', text: 'Stateless',                correct: true  },
-            { level: 4, id: 'ch6_q1_a2', text: 'Utilise HTTP (GET/POST…)', correct: true  },
-            { level: 4, id: 'ch6_q1_a3', text: 'Nécessite une session TCP persistante', correct: false },
-            { level: 4, id: 'ch6_q1_a4', text: 'Payload souvent JSON',     correct: true  },
-          ]},
-        { level: 3, id: 'ch6_q2', title: "Quel format est le plus léger généralement ?",
-          explanation: "JSON est plus compact que XML à données égales (pas de balises fermantes, pas de déclaration de schéma obligatoire). YAML est lisible mais comparable à JSON en taille. CSV est le plus dense pour des tableaux purs mais non hiérarchique. Pour des API modernes : JSON ; pour de la config humaine : YAML.",
-          children: [
-            { level: 4, id: 'ch6_q2_a1', text: 'JSON', correct: true  },
-            { level: 4, id: 'ch6_q2_a2', text: 'XML',  correct: false },
-            { level: 4, id: 'ch6_q2_a3', text: 'YAML', correct: false },
-            { level: 4, id: 'ch6_q2_a4', text: 'CSV',  correct: false },
-          ]},
-        { level: 3, id: 'ch6_q3', title: "Ansible est-il agent-less ?",
-          explanation: "Ansible est agent-less : il se connecte en SSH (Linux/équipements réseau) ou WinRM (Windows) depuis le control node, copie et exécute des modules Python temporairement. Aucun agent permanent à installer/maintenir. Les alternatives comme Puppet/Chef nécessitent classiquement un agent.",
-          children: [
-            { level: 4, id: 'ch6_q3_a1', text: 'Oui, il utilise SSH (ou WinRM)', correct: true  },
-            { level: 4, id: 'ch6_q3_a2', text: 'Non, agent obligatoire',         correct: false },
-            { level: 4, id: 'ch6_q3_a3', text: 'Uniquement avec un agent Python',correct: false },
-            { level: 4, id: 'ch6_q3_a4', text: 'Uniquement via SNMP',            correct: false },
-          ]},
-        { level: 3, id: 'ch6_q4', title: "En SDN, le plan de contrôle est…",
-          explanation: "SDN (Software-Defined Networking) sépare le control plane (décisions de routage) du data plane (forwarding). Le control plane est centralisé sur un contrôleur (Cisco DNA Center, ACI APIC, ONOS, OpenDaylight) qui programme les équipements via OpenFlow / NETCONF / REST. Vision globale du réseau → politiques cohérentes.",
-          children: [
-            { level: 4, id: 'ch6_q4_a1', text: 'Distribué sur chaque équipement',   correct: false },
-            { level: 4, id: 'ch6_q4_a2', text: 'Centralisé sur un contrôleur',      correct: true  },
-            { level: 4, id: 'ch6_q4_a3', text: 'Supprimé totalement',               correct: false },
-            { level: 4, id: 'ch6_q4_a4', text: 'Implémenté en hardware uniquement', correct: false },
-          ]},
-        { level: 3, id: 'ch6_q5', title: "YANG est utilisé avec quels protocoles ? (plusieurs)",
-          explanation: "YANG (RFC 7950) est un langage de modélisation de données réseau (décrit la structure de la config/état). Il est consommé par NETCONF (transport SSH, encodage XML) et RESTCONF (HTTP/HTTPS, JSON ou XML). SNMP utilise MIBs (ASN.1), Syslog n'est pas concerné.",
-          children: [
-            { level: 4, id: 'ch6_q5_a1', text: 'NETCONF',  correct: true  },
-            { level: 4, id: 'ch6_q5_a2', text: 'RESTCONF', correct: true  },
-            { level: 4, id: 'ch6_q5_a3', text: 'SNMP',     correct: false },
-            { level: 4, id: 'ch6_q5_a4', text: 'Syslog',   correct: false },
-          ]},
-      ]
-    }
+      "level": 1,
+      "id": "chapters",
+      "title": "Chapters",
+      "children": [
+        {
+          "level": 2,
+          "id": "cisco",
+          "title": "Cisco Concepts",
+          "children": [
+            {
+              "level": 3,
+              "id": "c1",
+              "concept": "4-step of STA",
+              "explanation": "elect a root Bridge, choose the Root Ports, choose de designated ports, block alternate ports"
+            },
+            {
+              "level": 3,
+              "id": "c2",
+              "concept": "Root Bridge",
+              "explanation": "is the central reference point of the entire STP topology"
+            },
+            {
+              "level": 3,
+              "id": "c3",
+              "concept": "BID",
+              "explanation": "Bridge ID, is the id which is what determines who wins the election"
+            },
+            {
+              "level": 3,
+              "id": "c4",
+              "concept": "Bridge Priority",
+              "explanation": "default value on all Cisco switches : 32768"
+            },
+            {
+              "level": 3,
+              "id": "c5",
+              "concept": "Extended System ID",
+              "explanation": "Simply the Vlan number whitch added to the priority so that each vlan can have its own independent stp instance"
+            },
+            {
+              "level": 3,
+              "id": "c6",
+              "concept": "BPDU",
+              "explanation": "the messages exchanged between switches during election, it is send every 2 seconds"
+            },
+            {
+              "level": 3,
+              "id": "c7",
+              "concept": "monocast address",
+              "explanation": "is mac address that the last bit of its first octet is 0"
+            },
+            {
+              "level": 3,
+              "id": "c8",
+              "concept": "multicat address",
+              "explanation": "is an mac address  01:00:5E:1xxx:xxxx:xxxx"
+            },
+            {
+              "level": 3,
+              "id": "c9",
+              "concept": "importance de la redondance des chemins",
+              "explanation": "La redondance des chemins assure de nombreux services réseau, en évitant le risque \nd avoir un point de défaillance unique"
+            },
+            {
+              "level": 3,
+              "id": "c10",
+              "concept": "consequence boucle",
+              "explanation": "Une boucle de couche 2 peut entraîner \nl instabilité de la table d adresses MAC, la saturation des liaisons et une utilisation élevée \nde processeur sur les commutateurs et les terminaux"
+            },
+            {
+              "level": 3,
+              "id": "c11",
+              "concept": "prevention de boucle au niveau de la couche 3 et ipv4",
+              "explanation": "Un routeur décrémentera la TTL (Time to Live) dans chaque \npaquet IPv4"
+            },
+            {
+              "level": 3,
+              "id": "c12",
+              "concept": "prevention de boucle au niveau de la couche 3 et ipv6",
+              "explanation": "le champ Hop Limit dans chaque paquet"
+            },
+            {
+              "level": 3,
+              "id": "c13",
+              "concept": " Une tempête de diffusion",
+              "explanation": "nombre anormalement élevé de diffusions qui \nsubmergent le réseau pendant une durée déterminée"
+            },
+            {
+              "level": 3,
+              "id": "c14",
+              "concept": "causes tempetes de diffusion",
+              "explanation": "Les tempêtes de diffusion peuvent être \nprovoquées par un problème matériel tel qu une carte d interface réseau \ndéfectueuse ou par une boucle de couche 2 dans le réseau."
+            },
+            {
+              "level": 3,
+              "id": "c15",
+              "concept": "comment les voisins icmpv6 sont découvert",
+              "explanation": "Les paquets IPv6 ne \nsoient jamais transférés en tant que diffusion de couche 2, la découverte de \nvoisins d ICMPv6 utilise des multidiffusions de couche 2."
+            },
+            {
+              "level": 3,
+              "id": "c16",
+              "concept": "Que se passe t il lorsque un hôte est pris dans une boucle de couche 2",
+              "explanation": "Lorsque un hôte est pris dans une boucle de couche 2, les autres hôtes du réseau ne peuvent pas y accéder"
+            },
+            {
+              "level": 3,
+              "id": "c17",
+              "concept": "Comment la STA crée-t-elle une topologie sans boucle?",
+              "explanation": "Sélection d un pont racine, Sélection d un pont racine , Créer une topologie sans boucle, Recalculer en cas de défaillance du lien"
+            },
+            {
+              "level": 3,
+              "id": "c18",
+              "concept": "4 phases du STA",
+              "explanation": "choix du pont racine, choix du port racine, choix des ports désignés, choix des ports alternatives ou bloqués "
+            },
+            {
+              "level": 3,
+              "id": "c19",
+              "concept": "contenue d un BID",
+              "explanation": "ID de pont contient une valeur de priorité, l adresse MAC du commutateur et un ID \nsystème étendu. La valeur d ID de pont la plus basse est déterminée par une combinaison de ces trois champs."
+            },
+            {
+              "level": 3,
+              "id": "c20",
+              "concept": "valeur de priorité par défaut pour tout les commutateurs cisco",
+              "explanation": "32768"
+            },
+            {
+              "level": 3,
+              "id": "c21",
+              "concept": "ID du système étendue",
+              "explanation": "La valeur de l ID système étendu est une valeur décimale \najoutée à la valeur de priorité du pont du BID afin d identifier le VLAN de cette BPDU."
+            },
+            {
+              "level": 3,
+              "id": "c22",
+              "concept": "utilité de la mac dans le STA",
+              "explanation": " Lorsque deux commutateurs sont configurés avec la même priorité et \npossèdent le même ID système étendu, le commutateur dont l adresse MAC de \nvaleur est la plus faible, exprimée au format hexadécimal, aura le BID le plus bas."
+            },
+            {
+              "level": 3,
+              "id": "c23",
+              "concept": "Processus de détermination des coût du chemin racine",
+              "explanation": "Les informations relatives au chemin, appelées coût du \nchemin racine interne, sont déterminées en additionnant les coûts de port individuels le long du \nchemin entre le commutateur et le pont racine., Lorsqu un commutateur reçoit le BPDU, il ajoute le coût du port d entrée du segment pour \ndéterminer le coût de chemin racine interne associé., Les coûts du port par défaut sont définis par la vitesse de fonctionnement du port, Bien qu un coût de port par défaut soit associé aux ports des commutateurs, il est possible de configurer le coût des ports "
+            },
+            {
+              "level": 3,
+              "id": "c24",
+              "concept": "Coût de STP : IEEE 802.1D-1998",
+              "explanation": "2 pour 10 Gbit/s, 4 pour 1 Gbit/s, 19 pour 100 Mbit/s, 100 pour 10 Mbit/s"
+            },
+            {
+              "level": 3,
+              "id": "c25",
+              "concept": "Coût de RSTP : IEEE 802.1w-2004",
+              "explanation": "2000 pour 10 Gbit/s, 20000 pour 1 Gbit/s, 200000 pour 100 Mbit/s, 2000000 pour 10 Mbit/s"
+            },
+            {
+              "level": 3,
+              "id": "c26",
+              "concept": "port racine",
+              "explanation": " Le port racine est le port le \nplus proche du pont racine en termes de \ncoûts généraux vers le pont racine"
+            },
+            {
+              "level": 3,
+              "id": "c27",
+              "concept": " chemin racine interne",
+              "explanation": "coût global d un port non root bridge vers le root bridge"
+            },
+            {
+              "level": 3,
+              "id": "c28",
+              "concept": "port désigné",
+              "explanation": "Le port désigné est un port sur le \nsegment qui a le coût du chemin \nracine interne vers le pont racine. En \nd autres termes, le port désigné a le \nmeilleur chemin pour recevoir le trafic \nqui conduit au pont racine."
+            },
+            {
+              "level": 3,
+              "id": "c29",
+              "concept": "port alternatif ou bloqué",
+              "explanation": " Ce qui n est pas un port racine ou un \nport désigné devient un port alternatif ou bloqué. "
+            },
+            {
+              "level": 3,
+              "id": "c30",
+              "concept": "comment le commutateur détermine un port lorsque les cout sont égales",
+              "explanation": "Lorsqu un commutateur possède plusieurs chemins d accès à coût égal vers le pont racine, le commutateur détermine un port en utilisant les critères suivants ID de pont d émetteur le plus faible Priorité de port le plus faible ID de port émetteur le plus faible"
+            },
+            {
+              "level": 3,
+              "id": "c31",
+              "concept": "Port priority",
+              "explanation": "propriété d un port utilisé pour l election du root port lorsque le bridge priority est le même"
+            },
+            {
+              "level": 3,
+              "id": "c32",
+              "concept": "hello timer",
+              "explanation": "intervalle entre les BPDU, avec la valeur par défaut de 2s , les valeurs authorisées partent de 1-10"
+            },
+            {
+              "level": 3,
+              "id": "c33",
+              "concept": "forward delay timer",
+              "explanation": "temps passé à l etat d ecoute et d apprentissage, valeur par default de 4 et peut être modifiée de 4 à 30 "
+            },
+            {
+              "level": 3,
+              "id": "c34",
+              "concept": "max age time",
+              "explanation": "durée maximal d attente d un commutateur avant de tenter de modifier sa topologie STP. valeur par défaut de 20 secondes et peut être modifiée de 4 à 40 s"
+            },
+            {
+              "level": 3,
+              "id": "c35",
+              "concept": "blocage",
+              "explanation": "BPDU sont en mode uniquement recevoir, pas de mise à jour de la mac table, pas de transmission de données"
+            },
+            {
+              "level": 3,
+              "id": "c36",
+              "concept": "Etoute",
+              "explanation": "BPDU sont ern mode recevoir et envoyé, pase de mise à jour de la mac table, pas de transmission de données"
+            },
+            {
+              "level": 3,
+              "id": "c37",
+              "concept": "apprentissage",
+              "explanation": "BPDU sont en mode recevoir et envoyé, mise à jour de la mac table, pas de transmission de données"
+            },
+            {
+              "level": 3,
+              "id": "c38",
+              "concept": "acheminement",
+              "explanation": "BPDU sont en mode recevoir et envoyer, mise à jour de la table, transmission de données"
+            },
+            {
+              "level": 3,
+              "id": "c39",
+              "concept": "désactivé",
+              "explanation": "BPDU sont en mode aucun envoie et reception, pas de mise à jour de la table, pas de transmission de données "
+            },
+            {
+              "level": 3,
+              "id": "c40",
+              "concept": "PVST",
+              "explanation": "Per-Vlan Spanning Tree"
+            },
+            {
+              "level": 3,
+              "id": "c41",
+              "concept": "PVST+",
+              "explanation": "PVST+ (Per-VLAN Spanning Tree) est une version améliorée du protocole STP proposée par Cisco, qui \noffre une instance Spanning Tree 802.1D séparée pour chaque VLAN configuré dans le réseau. PVST+ \nprend en charge PortFast, UplinkFast, BackboneFast, la protection BPDU, le filtre BPDU, la protection de racine et la protection de boucle."
+            },
+            {
+              "level": 3,
+              "id": "c42",
+              "concept": "802.1D 2004",
+              "explanation": "C est une version mise à jour du protocole STP standard, intégrant IEEE 802.1w."
+            },
+            {
+              "level": 3,
+              "id": "c43",
+              "concept": "RSTP",
+              "explanation": " Protocole RSTP (Rapid Spanning Tree Protocol) ou IEEE 802.1w est une version évoluée du protocole \nSTP, qui offre une convergence plus rapide."
+            },
+            {
+              "level": 3,
+              "id": "c44",
+              "concept": "Rapid PVST+",
+              "explanation": "Il s agit d une version améliorée de RSTP proposée par Cisco qui utilise PVST+ et fournit une instance \ndistincte de 802.1w par VLAN. Chaque instance séparée prend en charge PortFast, la protection BPDU, le filtre BPDU, la protection de racine et la protection de boucle."
+            },
+            {
+              "level": 3,
+              "id": "c45",
+              "concept": "MSTP",
+              "explanation": "MSTP (Multiple Spanning Tree Protocol) est un standard IEEE inspiré de l implémentation MISTP plus \nancienne de Cisco (Multiple Instance STP). MSTP mappe plusieurs VLAN dans une même instance \nSpanning Tree"
+            },
+            {
+              "level": 3,
+              "id": "c46",
+              "concept": "MST",
+              "explanation": "Multiple SpanningTree(MST) est l implémentation Cisco de MSTP, elle fournit jusqu à 16 instances du \nprotocole RSTP et allie plusieurs VLAN avec la même topologie physique et logique au sein d une \ninstance courante du protocole RSTP. Chaque instance prend en charge PortFast, la protection BPDU, \nle filtre BPDU, la protection de racine et la protection de boucle."
+            },
+            {
+              "level": 3,
+              "id": "c47",
+              "concept": "corespondance etat entre RSTP ET STP ",
+              "explanation": "disabled, blocking, listening de stp correspond à discarding de rstp, learning de stp corespond à learning de rstp, forwarding de stp corespond à forwarding de rstp"
+            },
+            {
+              "level": 3,
+              "id": "c48",
+              "concept": "corespondance type de port entre stp et rstp",
+              "explanation": "root port de stp correspond à root port de rstp, designated port de stp corespondand à designated port de rstp, blocking port de stp correspond à backup port et alternate port de rstp"
+            },
+            {
+              "level": 3,
+              "id": "c49",
+              "concept": "PortFast",
+              "explanation": "c est une configuration du port qui pert à ce port de passer directement de l Etat blockage à l etat transfert "
+            },
+            {
+              "level": 3,
+              "id": "c50",
+              "concept": "Protection BPDU",
+              "explanation": " Lorsqu elle est activée, la protection BPDU place immédiatement le port à \nl état errdisabled (erreur désactivée) lors de la réception d une trame BPDU"
+            },
+            {
+              "level": 3,
+              "id": "c51",
+              "concept": "key",
+              "explanation": "value"
+            },
+            {
+              "level": 3,
+              "id": "c52",
+              "concept": "OSPF",
+              "explanation": "OSPF (Open Shortest Path First) est un protocole de routage à état de liens qui a été\ndéveloppé comme alternative au protocole de routage à vecteur de distance, ou RIP"
+            },
+            {
+              "level": 3,
+              "id": "c53",
+              "concept": "stub network",
+              "explanation": "A stub network is a network that has only one connection to the rest of the network."
+            },
+            {
+              "level": 3,
+              "id": "c54",
+              "concept": "transit network",
+              "explanation": "A transit network is a network that carries traffic between other networks."
+            },
+            {
+              "level": 3,
+              "id": "c55",
+              "concept": "Paquet DBD",
+              "explanation": "Paquet DBD de description de base de données"
+            },
+            {
+              "level": 3,
+              "id": "c56",
+              "concept": "Paquet LSR",
+              "explanation": "Paquet LSR de demande d état de liens"
+            },
+            {
+              "level": 3,
+              "id": "c57",
+              "concept": "Paquet LSU",
+              "explanation": "Paquet LSU de mise à jour d état de liens"
+            },
+            {
+              "level": 3,
+              "id": "c59",
+              "concept": "Paquet LSA",
+              "explanation": "Paquet d accusé de reception d etats de liens"
+            },
+            {
+              "level": 3,
+              "id": "c60",
+              "concept": "Base de données de contiguïté",
+              "explanation": "Table de voisinage , •Répertorie tous les routeurs voisins avec lesquels un routeur a établi une communication bidirectionnelle. •Cette table est unique pour chaque routeur •Accessible via la commande show ip ospf neighbor ."
+            },
+            {
+              "level": 3,
+              "id": "c61",
+              "concept": "\nBase de données d états de liens (LSDB)",
+              "explanation": "Table topologique •Liste des informations relatives à tous les autres routeurs du réseau\n•La base de données représente le réseau LSDB.\n•Tous les routeurs au sein d une zone possèdent des LSDB identiques\n•Accessible via la commande show ip ospf database"
+            },
+            {
+              "level": 3,
+              "id": "c62",
+              "concept": "\nBase de\ndonnées de\nréachemine\nment",
+              "explanation": "Table de\nroutage •Liste de routes générée lors de l exécution d un algorithme sur la base de données d états\nde liens. •La table de routage de chaque routeur est unique et contient des informations sur les\nmodalités (la façon et l endroit) d envoi des paquets aux autres routeurs\n•Accessible via la commande show ip route "
+            },
+            {
+              "level": 3,
+              "id": "c63",
+              "concept": "étapes de routage d état de lien",
+              "explanation": " 1. Établissement des contiguïtés de voisinage\n2. Échange d annonces à état de liens\n3. Créer la base de données de l état des liens\n4. Exécution de l algorithme SPF\n5. Choisissez la meilleure route"
+            },
+            {
+              "level": 3,
+              "id": "c64",
+              "concept": "Zone OSPF",
+              "explanation": "groupe de routeurs qui\npartagent les mêmes informations d état de liens dans leurs LSDB"
+            },
+            {
+              "level": 3,
+              "id": "c65",
+              "concept": "OSPF à zone unique",
+              "explanation": "Tous les routeurs sont dans une zone. La meilleure pratique\nconsiste à utiliser la zone 0."
+            },
+            {
+              "level": 3,
+              "id": "c66",
+              "concept": "OSPF à zone plusieurs",
+              "explanation": "le protocole OSPF est mis en œuvre à l aide de plusieurs zones,\nde façon hiérarchique. Toutes les zones doivent se connecter à la zone de réseau\nfédérateur (zone 0). Les routeurs qui relient les zones entre elles sont des routeurs ABR\n(Area Border Router)."
+            },
+            {
+              "level": 3,
+              "id": "c67",
+              "concept": "Avantages conception topologie hiérarchique ospf",
+              "explanation": "Tables de routage plus petites, Réduction de la charge de mise à jour des états de liens, Réduction de la fréquence des calculs SPF"
+            },
+            {
+              "level": 3,
+              "id": "c68",
+              "concept": "OSPFv3",
+              "explanation": "OSPFv3 est l équivalent OSPFv2 pour l échange de préfixes IPv6. L OSPFv3\néchange des informations de routage pour renseigner la table de routage IPv6 avec\ndes préfixes distants."
+            },
+            {
+              "level": 3,
+              "id": "c69",
+              "concept": "État Down",
+              "explanation": "Aucun paquet Hello reçu = Down.\n•Le routeur envoie des paquets Hello.\n•Transition vers l état Init."
+            },
+            {
+              "level": 3,
+              "id": "c70",
+              "concept": "Etat init",
+              "explanation": "•Les paquets Hello sont reçus du voisin.\n•Ils contiennent des ID de routeur du routeur expéditeur.\n•Transition vers l état Two-Way."
+            },
+            {
+              "level": 3,
+              "id": "c71",
+              "concept": "État Two-Way",
+              "explanation": "•Dans cet état, la communication entre les deux routeurs est\nbidirectionnelle. •Sur les liens à accès multiple, les routeurs choisissent un DR et un BDR.\n•Transition vers l état ExStart."
+            },
+            {
+              "level": 3,
+              "id": "c72",
+              "concept": "État ExStart",
+              "explanation": " Sur les réseaux point à point, les deux routeurs décident quel routeur\ninitiera l échange de paquets DBD et décident du numéro de séquence de\npaquets DBD initial."
+            },
+            {
+              "level": 3,
+              "id": "c73",
+              "concept": "État Exchange",
+              "explanation": "•Les routeurs échangent des paquets DBD.\n•Si d autres informations de routeur sont nécessaires, passez à l état\nLoading. Sinon, passez à l état Full."
+            },
+            {
+              "level": 3,
+              "id": "c74",
+              "concept": "État Loading",
+              "explanation": "•Les paquets LSR et LSU permettent d obtenir des informations\nsupplémentaires sur les routes.\n•Les routes sont traitées à l aide de l algorithme SPF.\n•Transition vers l état Full."
+            },
+            {
+              "level": 3,
+              "id": "c75",
+              "concept": "État Full",
+              "explanation": "La base de données d état de liaison du routeur est entièrement\nsynchronisée."
+            },
+            {
+              "level": 3,
+              "id": "c76",
+              "concept": "État Down vers état Init",
+              "explanation": "Lorsque OSPFv2 est activé sur l interface, R1 passe de Down à Init et commence à\nenvoyer des paquets Hello OSPFv2 hors de l interface pour tenter de découvrir des\nvoisins."
+            },
+            {
+              "level": 3,
+              "id": "c77",
+              "concept": "État Init",
+              "explanation": "Lorsqu un R2 reçoit un paquet Hello du routeur R1 précédemment inconnu, il ajoute l ID\ndu routeur de R1 à la liste des voisins et répond avec un paquet Hello contenant son\npropre ID de routeur."
+            },
+            {
+              "level": 3,
+              "id": "c78",
+              "concept": "État Two-Way",
+              "explanation": "R1 reçoit le paquet Hello de R2 et remarque que le message contient l ID du routeur R1\ndans la liste des voisins de R2. R1 ajoute l ID de routeur de R2 à la liste des voisins et\neffectue des transitions vers l état bidirectionnel.\nSi R1 et R2 sont connectés à une liaison point à point, ils passent à l état ExStart\nSi R1 et R2 sont connectés sur un réseau Ethernet commun, l option DR/BDR se produit."
+            },
+            {
+              "level": 3,
+              "id": "c79",
+              "concept": "Choisir le routeur\ndésigné (DR) et le\nrouteur désigné de\nsecours (BDR)",
+              "explanation": "L option DR et BDR se produit, où le routeur ayant l ID de routeur le plus élevé ou la\npriorité la plus élevée est élu comme DR, et le deuxième plus élevé est le BDR"
+            },
+            {
+              "level": 3,
+              "id": "c80",
+              "concept": " Synchronisation des bases de données OSPF",
+              "explanation": "Décider du premier routeur, DBD Exchange:, Envoyer un LSR "
+            },
+            {
+              "level": 3,
+              "id": "c81",
+              "concept": "problématiques pour le protocole OSPF\nconcernant l inondation des LSA",
+              "explanation": "Création de plusieurs contiguïtés, Diffusion massive de paquets LSA );\n);\n);\n;\n'"
+            },
+            {
+              "level": 3,
+              "id": "c82",
+              "concept": "DROTHER",
+              "explanation": "un DROTHER est un routeur qui n est ni le routeur DR\nni le routeur BDR."
+            }
+          ]
+        }
       ]
     }
   ]
 };
 
-// Convenience accessor: the list of chapters under the 'chapters' wrapper.
+// Live alias to the single chapter's children (the 81 concept cards).
 export const CHAPTERS = APP_DATA.children[0].children;

@@ -1,8 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { APP_DATA, CHAPTERS } from '../data.js';
 
-// These tests lock in the tree shape. Step 1.8 renumbered levels and added the
-// 'chapters' wrapper: root(0) -> chapters(1) -> ch(2) -> qcm(3) -> answer(4).
+// These tests lock in the flashcard tree shape:
+//   root(0) -> chapters(1) -> chapter(2) -> card(3).
+// A card is { id, concept, explanation } with NO answers (self-assessment app).
 describe('APP_DATA shape', () => {
   it('root is level 0 with id "root"', () => {
     expect(APP_DATA.level).toBe(0);
@@ -20,7 +21,7 @@ describe('APP_DATA shape', () => {
     expect(CHAPTERS).toBe(APP_DATA.children[0].children);
   });
 
-  it('every chapter has level 2 and at least one QCM', () => {
+  it('every chapter has level 2 and at least one card', () => {
     expect(CHAPTERS.length).toBeGreaterThan(0);
     for (const ch of CHAPTERS) {
       expect(ch.level).toBe(2);
@@ -28,41 +29,20 @@ describe('APP_DATA shape', () => {
     }
   });
 
-  it('every QCM has level 3, a title, an explanation, and at least two answers', () => {
+  it('every card has level 3, a non-empty concept and explanation, and no answers', () => {
     for (const ch of CHAPTERS) {
-      for (const q of ch.children) {
-        expect(q.level).toBe(3);
-        expect(typeof q.title).toBe('string');
-        expect(q.title.length).toBeGreaterThan(0);
-        expect(typeof q.explanation).toBe('string');
-        expect(q.explanation.length).toBeGreaterThan(20);
-        expect(q.children.length).toBeGreaterThanOrEqual(2);
+      for (const c of ch.children) {
+        expect(c.level).toBe(3);
+        expect(typeof c.concept).toBe('string');
+        expect(c.concept.length).toBeGreaterThan(0);
+        expect(typeof c.explanation).toBe('string');
+        expect(c.explanation.length).toBeGreaterThan(0);
+        expect(c.children).toBeUndefined();
       }
     }
   });
 
-  it('every answer has level 4 and a boolean `correct`', () => {
-    for (const ch of CHAPTERS) {
-      for (const q of ch.children) {
-        for (const a of q.children) {
-          expect(a.level).toBe(4);
-          expect(typeof a.text).toBe('string');
-          expect(typeof a.correct).toBe('boolean');
-        }
-      }
-    }
-  });
-
-  it('every QCM has at least one correct answer (no impossible question)', () => {
-    for (const ch of CHAPTERS) {
-      for (const q of ch.children) {
-        const n = q.children.filter((a) => a.correct).length;
-        expect(n, `QCM ${q.id} has no correct answer`).toBeGreaterThan(0);
-      }
-    }
-  });
-
-  it('all chapter, QCM and answer IDs are unique', () => {
+  it('all chapter and card IDs are unique', () => {
     const seen = new Set();
     const addUnique = (id) => {
       expect(seen.has(id), `duplicate id: ${id}`).toBe(false);
@@ -70,10 +50,12 @@ describe('APP_DATA shape', () => {
     };
     for (const ch of CHAPTERS) {
       addUnique(ch.id);
-      for (const q of ch.children) {
-        addUnique(q.id);
-        for (const a of q.children) addUnique(a.id);
-      }
+      for (const c of ch.children) addUnique(c.id);
     }
+  });
+
+  it('contains all 81 concepts from the cisco table', () => {
+    const total = CHAPTERS.reduce((n, ch) => n + ch.children.length, 0);
+    expect(total).toBe(81);
   });
 });

@@ -31,9 +31,11 @@ export default function App() {
   const touchStartRef = useRef(null);
   const lastWheelRef = useRef(0);
 
-  const onAnswer = useCallback((qcm_id, correct) => {
+  // value: 1 = "I know this concept", 0 = "I don't". Appended to the cumulative
+  // history so the knowledge rate can be tracked over time.
+  const onRate = useCallback((card_id, value) => {
     setStats((prev) => {
-      const next = recordAnswer(prev, qcm_id, correct ? 1 : 0);
+      const next = recordAnswer(prev, card_id, value);
       saveStats(next);
       return next;
     });
@@ -138,7 +140,7 @@ export default function App() {
               className={'tab' + (appView === VIEW_CHAPTERS ? ' active' : '')}
               onClick={() => setAppView(VIEW_CHAPTERS)}
             >
-              Chapters
+              Concepts
             </button>
             <button
               type="button"
@@ -151,7 +153,7 @@ export default function App() {
             </button>
           </div>
         </div>
-        {appView === VIEW_CHAPTERS && (
+        {appView === VIEW_CHAPTERS && CHAPTERS.length > 1 && (
           <div className="strip" aria-label="Chapters">
             {CHAPTERS.map((ch, i) => (
               <button
@@ -168,28 +170,30 @@ export default function App() {
       </header>
 
       {appView === VIEW_CHAPTERS ? (
-        <main className="feed" ref={feedRef} aria-label="Questions">
-          <div className="dots" aria-hidden="true">
-            {chapter.children.map((_, i) => (
-              <span key={i} className={'dot' + (i === qcmIndex ? ' active' : '')} />
-            ))}
-          </div>
+        <main className="feed" ref={feedRef} aria-label="Concepts">
+          {total <= 15 && (
+            <div className="dots" aria-hidden="true">
+              {chapter.children.map((_, i) => (
+                <span key={i} className={'dot' + (i === qcmIndex ? ' active' : '')} />
+              ))}
+            </div>
+          )}
 
           {transition && (
             <Card
               key={`out-${transition.from.id}`}
-              qcm={transition.from}
+              card={transition.from}
               index={chapter.children.indexOf(transition.from)}
               total={total}
               animClass={transition.direction > 0 ? 'exit-to-top' : 'exit-to-bottom'}
               interactive={false}
-              onAnswer={onAnswer}
+              onRate={onRate}
             />
           )}
 
           <Card
             key={currentQcm.id}
-            qcm={currentQcm}
+            card={currentQcm}
             index={qcmIndex}
             total={total}
             animClass={
@@ -198,7 +202,7 @@ export default function App() {
                 : ''
             }
             interactive={true}
-            onAnswer={onAnswer}
+            onRate={onRate}
           />
         </main>
       ) : (

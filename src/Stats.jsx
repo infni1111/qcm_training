@@ -14,32 +14,32 @@ function pct(rate) {
   return `${Math.round(rate * 100)}%`;
 }
 
-function buildQcmIndex() {
+function buildCardIndex() {
   const idx = {};
   for (const ch of CHAPTERS) {
-    for (const q of ch.children) idx[q.id] = { chapter: ch, qcm: q };
+    for (const c of ch.children) idx[c.id] = { chapter: ch, card: c };
   }
   return idx;
 }
 
 export default function Stats({ stats, onReset }) {
-  // Default: per-chapter aggregates. Toggle => list of QCMs answered wrong.
-  const [showWrongQcms, setShowWrongQcms] = useState(false);
-  const qcmIndex = useMemo(buildQcmIndex, []);
+  // Default: per-chapter aggregates. Toggle => list of concepts marked unknown.
+  const [showUnknown, setShowUnknown] = useState(false);
+  const cardIndex = useMemo(buildCardIndex, []);
 
   const chapterRows = useMemo(() => chapterAggregates(stats), [stats]);
 
-  const wrongQcmRows = useMemo(() => {
+  const unknownRows = useMemo(() => {
     const out = [];
     forEachQcmStats(stats, ({ chapter, qcm_id, qcm_stats }) => {
       const summary = summarize(qcm_stats);
       if (summary.wrong > 0) {
-        const meta = qcmIndex[qcm_id];
-        if (meta) out.push({ chapter, qcm: meta.qcm, summary });
+        const meta = cardIndex[qcm_id];
+        if (meta) out.push({ chapter, card: meta.card, summary });
       }
     });
     return out;
-  }, [stats, qcmIndex]);
+  }, [stats, cardIndex]);
 
   const totals = useMemo(() => {
     let attempts = 0, correct = 0;
@@ -54,15 +54,15 @@ export default function Stats({ stats, onReset }) {
     <main className="stats-view" aria-label="Stats">
       <div className="stats-kpis">
         <div className="kpi">
-          <div className="kpi-label">Total clicks</div>
+          <div className="kpi-label">Notes totales</div>
           <div className="kpi-value">{totals.attempts}</div>
         </div>
         <div className="kpi">
-          <div className="kpi-label">Correct</div>
+          <div className="kpi-label">Connus</div>
           <div className="kpi-value">{totals.correct}</div>
         </div>
         <div className="kpi">
-          <div className="kpi-label">Overall rate</div>
+          <div className="kpi-label">Taux de connaissance</div>
           <div className="kpi-value">{pct(totals.rate)}</div>
         </div>
       </div>
@@ -71,10 +71,10 @@ export default function Stats({ stats, onReset }) {
         <label className="checkbox">
           <input
             type="checkbox"
-            checked={showWrongQcms}
-            onChange={(e) => setShowWrongQcms(e.target.checked)}
+            checked={showUnknown}
+            onChange={(e) => setShowUnknown(e.target.checked)}
           />
-          Show questions answered wrong
+          Concepts à revoir
         </label>
         <button
           type="button"
@@ -88,10 +88,10 @@ export default function Stats({ stats, onReset }) {
       </div>
 
       <div className="stats-list">
-        {!showWrongQcms ? (
+        {!showUnknown ? (
           chapterRows.every((r) => r.attempts === 0) ? (
             <div className="empty-msg">
-              No stats yet — answer a few questions to populate this list.
+              Aucune note pour l'instant — évalue quelques concepts pour remplir cette liste.
             </div>
           ) : (
             chapterRows.map((r) => (
@@ -107,25 +107,25 @@ export default function Stats({ stats, onReset }) {
                       : '—'}
                   </span>
                   {r.attempts > 0 && (
-                    <span className="stats-row-last">wrong: {r.wrong}</span>
+                    <span className="stats-row-last">à revoir : {r.wrong}</span>
                   )}
                 </div>
               </div>
             ))
           )
         ) : (
-          wrongQcmRows.length === 0 ? (
-            <div className="empty-msg">No wrong answers recorded — nice work.</div>
+          unknownRows.length === 0 ? (
+            <div className="empty-msg">Aucun concept à revoir — bravo.</div>
           ) : (
-            wrongQcmRows.map((r) => (
-              <div key={r.qcm.id} className="stats-row bad">
+            unknownRows.map((r) => (
+              <div key={r.card.id} className="stats-row bad">
                 <div className="stats-row-title">
                   <span className="stats-row-chapter">{r.chapter.id}</span>
-                  <span className="stats-row-qcm">{r.qcm.title}</span>
+                  <span className="stats-row-qcm">{r.card.concept}</span>
                 </div>
                 <div className="stats-row-metrics">
                   <span>{r.summary.correct}/{r.summary.attempts} ({pct(r.summary.rate)})</span>
-                  <span className="stats-row-last">last: {fmtDate(r.summary.last)}</span>
+                  <span className="stats-row-last">dernier : {fmtDate(r.summary.last)}</span>
                 </div>
               </div>
             ))
