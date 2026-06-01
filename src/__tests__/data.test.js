@@ -54,8 +54,15 @@ describe('APP_DATA shape', () => {
     }
   });
 
-  it('contains all 81 concepts from the cisco table', () => {
-    const total = CHAPTERS.reduce((n, ch) => n + ch.children.length, 0);
-    expect(total).toBe(81);
+  it('keeps the original 81 concepts in the cisco chapter', () => {
+    const cisco = CHAPTERS.find((ch) => ch.id === 'cisco');
+    expect(cisco).toBeDefined();
+    expect(cisco.children).toHaveLength(81);
+  });
+
+  it('has the Chapter 1 module summary with 26 cards', () => {
+    const mod1 = CHAPTERS.find((ch) => ch.id === 'mod1');
+    expect(mod1).toBeDefined();
+    expect(mod1.children).toHaveLength(26);
   });
 });
