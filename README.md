@@ -158,13 +158,67 @@ npm test
 
 # start the Flask server (serves ./dist on 0.0.0.0:8080)
 python3 server.py
+
+# …or on a different port (8080 is taken by GNS3 on this machine):
+PORT=8090 python3 server.py
 ```
 
-Open <http://127.0.0.1:8080/>. In GitHub Codespaces, forward port 8080.
+Open <http://127.0.0.1:8080/> (or `:8090`). In GitHub Codespaces, forward the port.
+
+`server.py` reads the `PORT` env var (default `8080`). On this dev machine **port
+8080 is occupied by a GNS3 server**, so the app is run on **8090** instead — see
+`serve.sh` and §4.2.
 
 Vite dev server (HMR) is also available on port 5173 via `npm run dev`, but
 it's independent of the Flask server. The canonical way to test is the Flask
 build since that's what steps 2/3 will integrate with.
+
+### 4.1. Offline / PWA
+
+The app is an **installable, offline-capable PWA** (`vite-plugin-pwa`, configured
+in `vite.config.js`). `npm run build` generates a Workbox service worker
+(`dist/sw.js`) plus `dist/manifest.webmanifest`, and precaches the whole app
+shell (HTML + hashed JS/CSS + icons). This is what makes the app keep working
+when `server.py` / the network is down: **the server is only needed for the very
+first load**; after that the service worker serves the cached shell, and all
+content (`data.js`, bundled) and progress (`localStorage`, see `stats.js`) are
+already local — there is no API round-trip.
+
+`registerType: 'autoUpdate'` means a fresh `npm run build` + reload silently
+updates the cached worker. To test offline: load once over HTTP, then kill the
+server (or toggle airplane mode on the phone) and reload — it still runs. Icons
+live in `public/` (regenerate with the PIL script if you rebrand).
+
+### 4.2. Run it on your phone (WSL → Windows LAN) — `serve.sh`
+
+This project runs in **WSL2 on Windows**. WSL2's NAT hides its ports from the
+LAN, so a Windows-side `netsh portproxy` is needed to reach the app from a phone.
+The WSL IP changes on every WSL restart, which is why a one-shot launcher exists:
+
+```bash
+./serve.sh              # build if needed, start app on :8090, set up the proxy
+./serve.sh --build      # force a fresh `npm run build` first
+./serve.sh --no-proxy   # local/WSL only, skip the proxy + UAC prompt
+PORT=9090 ./serve.sh    # different port end-to-end
+```
+
+`serve.sh` (1) reads the current WSL IP, (2) builds if `dist/` is missing,
+(3) starts Flask on `PORT` (default **8090**) detached, (4) **verifies the
+response is actually the CCNA app** — guarding against the GNS3-on-8080 mix-up,
+where GNS3's catch-all returns `200` for any path and looks like a healthy
+server — then (5) regenerates `C:\Users\Public\wslproxy<PORT>.ps1` with the fresh
+IP baked in and runs it **elevated** (approve the **UAC prompt**), mapping
+`0.0.0.0:<PORT> → <wsl-ip>:<PORT>` and adding firewall rule "WSL app <PORT>".
+
+Phone URL (same Wi-Fi): **`http://192.168.1.191:8090/`** — `192.168.1.191` is the
+phone-reachable Windows LAN IP. Stop the server with `fuser -k 8090/tcp`.
+
+> The IP is baked in from the WSL side on purpose: running `wsl hostname -I`
+> *inside* the elevated Windows PowerShell returns a mangled string (UTF-16 /
+> locale), which silently produced a broken `connectaddress`. Generating the
+> script from WSL avoids that. A cleaner long-term fix is `networkingMode=mirrored`
+> in `%UserProfile%\.wslconfig`. For a public URL, prefer Cloudflare Pages
+> (this network can't reach onrender.com).
 
 ---
 
@@ -175,8 +229,10 @@ qcm_training/
 ├── index.html            Vite entry
 ├── package.json          react, react-dom, vite, vitest, jsdom
 ├── vite.config.js        build config + vitest config (jsdom env)
-├── server.py             Flask static file server with SPA fallback
+├── server.py             Flask static file server (SPA fallback; PORT env, default 8080)
+├── serve.sh              one-shot launcher: build + run on :8090 + Windows LAN proxy
 ├── README.md             this file
+├── public/               PWA icons (copied verbatim into dist by Vite)
 ├── src/
 │   ├── main.jsx          React entry
 │   ├── App.jsx           top-level state, header, view switch, gestures

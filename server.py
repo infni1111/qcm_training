@@ -2,9 +2,11 @@
 
 Serves the Vite build output from ./dist.
 Build first:   npm install && npm run build
-Then run:      python3 server.py       (binds 0.0.0.0:8080)
+Then run:      python3 server.py            (binds 0.0.0.0:8080)
+Custom port:   PORT=8090 python3 server.py  (e.g. when 8080 is taken by GNS3)
 """
 
+import os
 from pathlib import Path
 
 from flask import Flask, send_from_directory
@@ -35,4 +37,4 @@ if __name__ == "__main__":
         raise SystemExit(
             f"{DIST} not found. Run `npm install && npm run build` first."
         )
-    app.run(host="0.0.0.0", port=8080, debug=True)
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", "8080")), debug=True)
