@@ -6,9 +6,15 @@ a concept term on the front; you recall the definition from memory, tap to
 *reveal* the explanation on the back, then self-rate "Je connais" / "Je ne
 connais pas". Knowledge rate is tracked per device.
 
+The app opens on a **mode chooser**: *text mode* (the visual flashcards) or
+*voice mode*, an audio version for blind / low-vision learners where cards and
+guidance are read aloud with the browser's Web Speech API. Both modes share the
+same cards and the same stats history.
+
 **Status:** flashcard frontend complete (migrated from the earlier
-multiple-choice QCM model). The card content in `data.js` is generated from a
-PostgreSQL `db_course.cisco` table. A minimal Flask static server serves the
+multiple-choice QCM model), with text and voice modes. `data.js` holds 383
+cards in 15 chapters: 81 "Cisco Concepts" cards generated from a PostgreSQL
+`db_course.cisco` table, plus 14 module-summary chapters (302 cards). A minimal Flask static server serves the
 build. The REST API and live database integration are not implemented yet.
 
 ---
@@ -24,8 +30,9 @@ per-device stats branch.
 ```
 root (L0) — title "CCNA Training"
 ├── chapters (L1)                         APP_DATA.children[0]
-│   └── chapter (L2)                      "cisco" (Cisco Concepts)
-│       └── card (L3)                     c1 … c82  (81 cards; ids are not gapless)
+│   └── chapter (L2)                      "cisco" (Cisco Concepts) + mod1 … mod14
+│       └── card (L3)                     cisco: c1 … c82 (81 cards; ids are not gapless)
+│                                          modN: chNc1 … (302 cards) — 383 total
 │                                          each { concept, explanation } — NO children
 │
 └── stats (L1)                            loadStats() → built from localStorage
@@ -43,13 +50,14 @@ root (L0) — title "CCNA Training"
 The **training branch** is static content. The **stats branch** is per-user
 state that evolves with use. Keeping them as sibling branches under the same
 root lets the UI treat them symmetrically — see the app-level
-`chapters` ↔ `stats` view switch in `App.jsx`.
+`chapters` ↔ `stats` view switch in `TextApp.jsx`.
 
 ### 1.3. Stack
 
 | Layer     | Tool                                                     |
 |-----------|----------------------------------------------------------|
-| UI        | React 18 + Vite 5                                        |
+| UI        | React 18 + Vite 5, `vite-plugin-pwa`                     |
+| Voice     | Web Speech API (`speechSynthesis`) via `src/speech.js`   |
 | Tests     | Vitest + jsdom                                           |
 | Server    | Flask (`server.py`) — serves `dist/` on port 8080 (SPA)  |
 | Storage   | `localStorage` under key `ccna_stats_v1` (schema v2)     |
@@ -59,7 +67,12 @@ root lets the UI treat them symmetrically — see the app-level
 ## 2. Component map
 
 ```
-App                                  src/App.jsx
+App                                  src/App.jsx — mode router, owns shared stats
+├── ModeChooser                      src/ModeChooser.jsx (mode === null; keys 1 / 2)
+├── VoiceApp → VoiceCard             src/VoiceApp.jsx, src/VoiceCard.jsx (mode === 'voice')
+└── TextApp                          src/TextApp.jsx (mode === 'text')
+
+TextApp                              src/TextApp.jsx
 ├── <header>
 │   ├── <h1>CCNA Training</h1>
 │   ├── .view-switch                  ← appView useState: 0=Concepts | 1=Stats
@@ -86,7 +99,7 @@ App                                  src/App.jsx
 
 | Scope     | State owner   | Values                  | UI            |
 |-----------|---------------|-------------------------|---------------|
-| App       | `App.jsx`     | 0 concepts / 1 stats    | Header tabs   |
+| App       | `TextApp.jsx` | 0 concepts / 1 stats    | Header tabs   |
 | Card      | `Card.jsx`    | 0 concept / 1 explanation | "Révéler" button / explanation title |
 
 Both switches render **one** of two sibling components at a time. This is
@@ -98,14 +111,14 @@ deliberate: *there is no intermediate state where both are half-visible*.
 
 ### 3.1. `<Card key={card.id}>` → state resets when leaving a card
 
-In `App.jsx`, the `<Card>` element is keyed by `currentQcm.id` (the current
+In `TextApp.jsx`, the `<Card>` element is keyed by `currentQcm.id` (the current
 card's id). Navigating to a new card changes that key, so React **unmounts** the
 old `<Card>` and mounts a fresh one. Both `view` (Concept/Explanation) and
 `rating` (null/1/0) live inside `Card`, so they automatically reset for the new
-card — it starts on its front, unrated. This is exactly what the user asked for
-with: "when I leave, the state returns to its default."
+card — it starts on its front, unrated: leaving a card returns it to its default
+state. (`VoiceApp` does the same with a keyed `<VoiceCard>`.)
 
-Do not hoist `view` or `rating` into `App.jsx` — you would break that reset.
+Do not hoist `view` or `rating` into `TextApp.jsx` — you would break that reset.
 
 ### 3.2. Discrete step-function navigation
 
@@ -171,7 +184,7 @@ Open <http://127.0.0.1:8080/> (or `:8090`). In GitHub Codespaces, forward the po
 
 Vite dev server (HMR) is also available on port 5173 via `npm run dev`, but
 it's independent of the Flask server. The canonical way to test is the Flask
-build since that's what steps 2/3 will integrate with.
+build since that's what the planned REST API will integrate with.
 
 ### 4.1. Offline / PWA
 
@@ -187,7 +200,7 @@ already local — there is no API round-trip.
 `registerType: 'autoUpdate'` means a fresh `npm run build` + reload silently
 updates the cached worker. To test offline: load once over HTTP, then kill the
 server (or toggle airplane mode on the phone) and reload — it still runs. Icons
-live in `public/` (regenerate with the PIL script if you rebrand).
+live in `public/`.
 
 ### 4.2. Run it on your phone (WSL → Windows LAN) — `serve.sh`
 
@@ -210,8 +223,8 @@ server — then (5) regenerates `C:\Users\Public\wslproxy<PORT>.ps1` with the fr
 IP baked in and runs it **elevated** (approve the **UAC prompt**), mapping
 `0.0.0.0:<PORT> → <wsl-ip>:<PORT>` and adding firewall rule "WSL app <PORT>".
 
-Phone URL (same Wi-Fi): **`http://192.168.1.191:8090/`** — `192.168.1.191` is the
-phone-reachable Windows LAN IP. Stop the server with `fuser -k 8090/tcp`.
+Phone URL (same Wi-Fi): **`http://<windows-lan-ip>:8090/`** — set `LAN_IP` in
+`serve.sh` to your Windows machine's LAN IP. Stop the server with `fuser -k 8090/tcp`.
 
 > The IP is baked in from the WSL side on purpose: running `wsl hostname -I`
 > *inside* the elevated Windows PowerShell returns a mangled string (UTF-16 /
@@ -227,15 +240,21 @@ phone-reachable Windows LAN IP. Stop the server with `fuser -k 8090/tcp`.
 ```
 qcm_training/
 ├── index.html            Vite entry
-├── package.json          react, react-dom, vite, vitest, jsdom
-├── vite.config.js        build config + vitest config (jsdom env)
+├── package.json          react, react-dom, vite, vite-plugin-pwa, vitest, jsdom
+├── vite.config.js        build + PWA config + vitest config (jsdom env)
 ├── server.py             Flask static file server (SPA fallback; PORT env, default 8080)
 ├── serve.sh              one-shot launcher: build + run on :8090 + Windows LAN proxy
+├── render.yaml           Render blueprint (static-site deploy of dist/)
 ├── README.md             this file
 ├── public/               PWA icons (copied verbatim into dist by Vite)
 ├── src/
 │   ├── main.jsx          React entry
-│   ├── App.jsx           top-level state, header, view switch, gestures
+│   ├── App.jsx           mode router (menu / text / voice) + shared stats
+│   ├── ModeChooser.jsx   first screen: pick text or voice mode (spoken menu)
+│   ├── TextApp.jsx       text mode: header, view switch, chapters strip, gestures
+│   ├── VoiceApp.jsx      voice mode: chapter select + keyed VoiceCard
+│   ├── VoiceCard.jsx     one spoken card: play/pause, reveal, self-rating
+│   ├── speech.js         SpeechPlayer wrapper around window.speechSynthesis
 │   ├── Card.jsx          single flashcard; owns view + rating
 │   ├── Concept.jsx       card front: concept term + "Révéler" (view === 0)
 │   ├── Explanation.jsx   card back: explanation + self-rating (view === 1)
@@ -245,6 +264,7 @@ qcm_training/
 │   ├── index.css         all styles (dark theme, mobile-first)
 │   └── __tests__/
 │       ├── data.test.js  tree invariants
+│       ├── speech.test.js SpeechPlayer behaviour (with and without speechSynthesis)
 │       └── stats.test.js pure-function + persistence + migration
 ├── dist/                 Vite build output (gitignored)
 └── node_modules/         gitignored
@@ -262,67 +282,49 @@ qcm_training/
   Prefer importing `CHAPTERS` when you want to iterate chapters — it removes
   the `.children[0]` clutter and makes the intent explicit.
 
-- **`<body class="view-stats">`** is toggled from `App.jsx` via a `useEffect`.
+- **`<body class="view-stats">`** is toggled from `TextApp.jsx` via a `useEffect`.
   It's the one piece of imperative DOM the app keeps. It exists because the
   header height changes when the chapters strip is hidden and CSS variables
   scoped to a body class were the simplest way.
 
 - **Flask is a thin static server right now.** `server.py` serves `./dist`
-  with a fallback to `index.html` for unknown paths (SPA-friendly). In step 2,
-  it will gain `/api/*` endpoints for the stats.
+  with a fallback to `index.html` for unknown paths (SPA-friendly). Later,
+  it is meant to gain `/api/*` endpoints for the stats.
 
 - **Stats are device-local.** Clearing your browser's site data wipes them.
-  Step 3 will introduce a real DB. Do not rely on localStorage surviving
+  A real DB is planned (see §7). Do not rely on localStorage surviving
   beyond the current step.
 
 - **The TikTok-style transitions are a visual effect, not a scroll.**
   `touchmove` is deliberately ignored: the card does *not* follow the finger.
-  If you re-introduce finger-following you break the "step function" the user
-  insisted on.
+  If you re-introduce finger-following you break the "step function" design.
 
-- **`data.js` is generated, not hand-authored.** The header comment names the
-  source: a PostgreSQL `db_course.cisco` table (81 rows). Do not hand-edit card
-  content — regenerate it from the table. Card ids run `c1 … c82` with a gap
-  (81 cards), so don't assume ids are contiguous.
+- **`data.js` has two sources.** The "Cisco Concepts" chapter is generated from
+  a PostgreSQL `db_course.cisco` table (81 rows); card ids run `c1 … c82` with a
+  gap, so don't assume ids are contiguous. The 14 module chapters (`mod1` …
+  `mod14`, 302 cards) summarise the "What did I learn in this module?" sections
+  of the CCNA course modules.
 
-- **Card content is in French, UI labels are mixed.** The concept terms and
-  explanations are CCNA material authored in French on purpose — do not
-  auto-translate them. UI strings are a mix of French (rating buttons, stats
-  KPIs) and English (Clear / Stats); that's the current state, not a bug.
+- **Card content is in English, UI labels are mixed.** Concept terms and
+  explanations are in English (the CCNA exam is in English), and voice mode
+  reads them with an `en-US` voice. UI strings and spoken guidance are mostly
+  French (rating buttons, stats KPIs, `fr-FR` voice prompts), with some English
+  (Clear / Stats); that's the current state, not a bug.
 
 ---
 
 ## 7. What's next
 
-- **Step 2 — Flask REST API:** move read/write of cards and stats behind
+- **Flask REST API:** move read/write of cards and stats behind
   `/api/*`. The frontend would fetch cards on boot and POST each rating event.
   Keep the tree shape as the wire format (it's already JSON-safe).
 
-- **Step 3 — Live database integration:** `data.js` is already *generated* from
-  PostgreSQL `db_course.cisco`, but the running app does not talk to the DB.
-  Step 3 would serve cards from the DB and persist ratings append-only:
+- **Live database integration:** the Cisco Concepts chapter is already
+  *generated* from PostgreSQL `db_course.cisco`, but the running app does not
+  talk to the DB. The next step would serve cards from the DB and persist ratings append-only:
   `stats(card_id, user_id, ts_ms, value)`.
 
 - Nice-to-haves not yet built:
   - Spaced-repetition / "review only unknown" study mode.
   - Per-user auth (today: one device = one user).
   - Progression chart (line graph of daily knowledge rate).
-
----
-
-## 8. Notes for future Claude instances
-
-- **Start by reading `README.md` + `src/data.js` + `src/stats.js`**, in that
-  order. The README is opinionated about invariants; the source files are the
-  source of truth.
-- **Do not rewrite `data.js` in bulk** — it's long. Use targeted `Edit`
-  replacements or scripted `sed`/`python` transforms.
-- **Re-run `npm test` after any change to `stats.js` or `data.js`.** The tests
-  lock in the tree shape and the merge semantics.
-- **The user is French.** Code and code comments are English-only (set during
-  step 1.5). Card *content* stays French (it's the source material); some UI
-  strings are French by the user's choice.
-- **`python3 server.py` is already running** in the background during an
-  active session. Probe it with `curl` before starting a new one.
-- **Never commit `dist/` or `node_modules/`** — both are in `.gitignore`.
-  The canonical deploy is `npm install && npm run build && python3 server.py`.
